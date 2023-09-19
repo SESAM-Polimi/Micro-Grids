@@ -1,0 +1,14 @@
+param: lat := '-13';               						#latitude [°]
+param: demand_growth := '0';							#yearly expected average percentage variation of the demand [%]
+param: cooling_period := 'AS';							#cooling period (NC = No Cooling; AY = All Year; OM = Oct-Mar; AS=Apr-Sept)
+param: h_tier1:= '151';								#number of households in the wealth tier 1
+param: h_tier2:= '43';								#number of households in the wealth tier 2
+param: h_tier3:= '8';								#number of households in the wealth tier 3
+param: h_tier4:= '0';								#number of households in the wealth tier 4
+param: h_tier5:= '0';								#number of households in the wealth tier 5
+param: schools:= '0';								#number of schools
+param: hospital_1:= '0';							#number of hospitals of type 1
+param: hospital_2:= '0';							#number of hospitals of type 2
+param: hospital_3:= '0';							#number of hospitals of type 3
+param: hospital_4:= '0';							#number of hospitals of type 4
+param: hospital_5:= '0';							#number of hospitals of type 5
