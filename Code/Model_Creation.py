@@ -155,6 +155,16 @@ def Model_Creation(model, Renewable_Penetration,Battery_Independence):
     model.Lost_Load_Fraction      = Param(within=NonNegativeReals)                  # Lost load maxiumum admittable fraction in %
     model.Lost_Load_Specific_Cost = Param(within=NonNegativeReals)                  # Value of lost load in USD/Wh 
 
+    "Parameters for the grid routing"
+    model.CRS = Param(within=NonNegativeReals)  # Desired CRS for the projection of the geographical coordinates [-]
+    model.Max_y = Param()   # Maximum latitude of the study area [-]                                                   
+    model.Min_y = Param()    # Minimum latitude of the study area [-]                                                   
+    model.Max_x = Param()    # Maximum longitude of the study area [-]
+    model.Min_x = Param()    # Minimum latitude of the study area [-]
+    model.Specific_Line_Cost = Param(within=NonNegativeReals)    # Specific cost of the distribution line considering LV line, panelboards and poles [USD/km]
+    model.Meter_Cost = Param(within=NonNegativeReals)     # Specific cost of metering system [USD/unit]
+   
+
     "Parameters of the plot"
     model.RES_Colors        = Param(model.renewable_sources)                        # HEX color codes for RES
     model.Battery_Color     = Param()                                               # HEX color codes for Battery bank

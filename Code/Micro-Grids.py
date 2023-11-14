@@ -13,6 +13,7 @@ from Model_Resolution_Brownfield import Model_Resolution_Brownfield
 from Model_Resolution_Greenfield import Model_Resolution_Greenfield
 from Results import ResultsSummary, TimeSeries, PrintResults
 from Plots import DispatchPlot, DispatchPlot1, DispatchPlot2, DispatchPlot3, CashFlowPlot, SizePlot
+from Grid_Routing_Main import Distribution_Line
 
 start = time.time()         # Start time counter
 model = AbstractModel()     # Define type of optimization problem
@@ -25,7 +26,8 @@ Brownfield_Investment = 0           # 1 if Brownfield investment, 0 Greenfield i
 Plot_maxCost = 0                    # 1 if the Pareto curve has to include the point at maxNPC/maxOperationCost, 0 otherwise
 Renewable_Penetration = 0           # Fraction of electricity produced by renewable sources. Number from 0 to 1.
 Battery_Independence  = 0           # Number of days of battery independence
-
+Grid_Routing = 0                    # 1 if grid routing option desired, 0 otherwise
+Routing_Method = 'Power'       # can be 'Users', 'Roads', 'Power' depending on which weighting method is preferred for the design of the distribution line
 
 #%% Processing
 Model_Creation(model, Renewable_Penetration, Battery_Independence) # Creation of the Sets, parameters and variables.
@@ -35,10 +37,12 @@ if Brownfield_Investment:
 else:
     instance = Model_Resolution_Greenfield(model, Optimization_Goal,MultiObjective_Optimization, Plot_maxCost, Renewable_Penetration, Battery_Independence) # Resolution of the instance
      
+if Grid_Routing:
+    Users_Number, Distribution_Line_Length = Distribution_Line(Routing_Method, model)
 
 #%% Results
 TimeSeries = TimeSeries(instance)
-Results    = ResultsSummary(instance, Optimization_Goal, TimeSeries, Brownfield_Investment) 
+Results    = ResultsSummary(instance, Optimization_Goal, TimeSeries, Brownfield_Investment, Users_Number, Distribution_Line_Length) 
 
 
 #%% Plot and print-out
