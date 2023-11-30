@@ -115,10 +115,11 @@ def demand_calculation():
     
     #%% Export results to excel
 def excel_export(load,years):
+    # Setting new column names based on the number of years
+    load = load.set_axis(np.arange(1, years+1), axis=1)
     
-    load = load.set_axis(np.arange(1,years+1), axis=1)
-    
-    load.to_excel("Inputs/Demand.xlsx")
+    # Exporting the DataFrame to a CSV file
+    load.to_csv("Inputs/Demand.csv", sep=';', decimal=',', index=True)
 
 
 #%% Calculates and export the load demand  time series of households and services for 20 years to Demand.xlsx

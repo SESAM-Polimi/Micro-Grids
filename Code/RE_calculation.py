@@ -1,8 +1,8 @@
 from collections import defaultdict
 import time, sys, concurrent.futures, urllib.request, urllib.parse, urllib.error    
 import pandas as pd, math, numpy as np, re, bisect, json, operator, copy, matplotlib.pyplot as plt
-#from windrose import WindroseAxes
-
+# from windrose import WindroseAxes
+import csv
 #%% Input data section
 
 ### Import URL components for the POWER API by NASA and generate the URL (two different functions depending on time resolution)
@@ -15,8 +15,16 @@ def URL_creation_d(Data_import):
             loc_id = '/' + value[value.index('=')+1:value.index(';')].replace(' ','')
         if "param: parameters_1" in value:
             parameters_1 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-        if "param: parameters_2" in value:
-            parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+            
+        if "param: Solar_Resolution" in value:
+            Solar_Resolution = int(value[value.index('=')+1:value.index(';')].replace(' ',''))
+            if Solar_Resolution == 0:
+                if "param: parameters_2" in value:
+                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+            if Solar_Resolution == 1:
+                if "param: parameters_2_R" in value:
+                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+        
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -78,8 +86,16 @@ def URL_creation_d(Data_import):
             loc_id = '/' + value[value.index('=')+1:value.index(';')].replace(' ','')
         if "param: parameters_1" in value:
             parameters_1 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-        if "param: parameters_2" in value:
-            parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+        
+        if "param: Solar_Resolution" in value:
+            Solar_Resolution = int(value[value.index('=')+1:value.index(';')].replace(' ',''))
+            if Solar_Resolution == 0:
+                if "param: parameters_2" in value:
+                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+            if Solar_Resolution == 1:
+                if "param: parameters_2_R" in value:
+                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+        
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -139,8 +155,16 @@ def URL_creation_h(Data_import):
             base_URL = value[value.index('=')+1:value.index(';')].replace(' ','')
         if "param: loc_id" in value:
             loc_id = '/' + value[value.index('=')+1:value.index(';')].replace(' ','')
-        if "param: parameters_3" in value:
-            parameters = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+            
+        if "param: Solar_Resolution" in value:
+            Solar_Resolution = int(value[value.index('=')+1:value.index(';')].replace(' ',''))
+            if Solar_Resolution == 0:
+                if "param: parameters_3" in value:
+                    parameters = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+            if Solar_Resolution == 1:
+                if "param: parameters_3_R" in value:
+                    parameters = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+        
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -222,7 +246,7 @@ def wind_parameters(Data_import):
     elif type_turb == 'VA':
         skipf = 0
         skiprow = 36
-    data1 = pd.read_excel('Inputs/Generation.xlsx', sheet_name = "WT Power Curve", skiprows = skiprow,  skipfooter = skipf) 
+    data1 = pd.read_csv('Inputs/WT_Power_Curve.csv', skiprows = skiprow,  skipfooter = skipf, delimiter=';', decimal=',') 
     df = pd.DataFrame(data1, columns= [turb_model])
     power_curve = (df[turb_model][4:34]).values.tolist()
     rot_diam = df[turb_model][1]
@@ -558,18 +582,18 @@ def export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp):
             for hour in range(0,len(energy_PV[months][day])):
                 energy_PV_lst.append(energy_PV[months][day][hour])   
     dataf = pd.concat([pd.DataFrame([ii for ii in range(1,len(energy_WT)+1)]), pd.DataFrame(energy_PV_lst), pd.DataFrame(energy_WT)], axis = 1)
-    dataf = dataf.set_axis([None,1,2], axis=1, inplace=False)
+    dataf = dataf.set_axis([None,1,2], axis=1)
     
     PlotFormat = 'png'                  # Desired extension of the saved file (Valid formats: png, svg, pdf)
     PlotResolution = 1000                # Plot resolution in dpi (useful only for .png files, .svg and .pdf output a vector plot)
 
 # Windrose plot in the TMY    
-    ax = WindroseAxes.from_ax()
-    ax.bar(wind_direction_lst, U_rotor_lst, normed=True, opening=0.8, edgecolor='white')
-    ax.set_legend()
-    plt.title('Windrose',fontsize=18)
-    fig1 = plt.figure(figsize=(20,15))
-    fig1.savefig('Results/Plots/Windrose.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
+    # ax = WindroseAxes.from_ax()
+    # ax.bar(wind_direction_lst, U_rotor_lst, normed=True, opening=0.8, edgecolor='white')
+    # ax.set_legend()
+    # plt.title('Windrose',fontsize=18)
+    # fig1 = plt.figure(figsize=(20,15))
+    # fig1.savefig('Results/Plots/Windrose.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
     '''    
 # Wind speed occurrencies and probability histograms in the TMY
     WS_range = range(0,31)
@@ -904,19 +928,13 @@ def RE_supply():
     print("Completed\n ")            
                
 # Report results on excel sheet 'RES_supply' and export windrose and plots
-    
-    from openpyxl import load_workbook    
-    
+
     print('Plotting and exporting time series to Generation.xlsx... \n')
     dataf = export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp) 
-    filename = "Inputs/Generation.xlsx"
-    book = load_workbook(filename)
-    writer = pd.ExcelWriter(filename, engine='openpyxl') 
-    writer.book = book
-    writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
-    dataf.to_excel(writer, sheet_name = 'Renewable Energy', index=False, header = True, startrow = 0, startcol = 0)
-    writer.save()
-    
+    filename = 'Inputs/RES_Time_Series.csv'
+    book = pd.DataFrame(dataf)
+    book.to_csv(filename, sep=';', decimal=',', quotechar = ' ', index=False, header = True)
+
     # Timing
     end = time.time()
     elapsed = end - start

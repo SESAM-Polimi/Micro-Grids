@@ -139,14 +139,14 @@ def Initialize_Discount_Rate(model):
 #%% This section imports the multi-year Demand and Renewable-Energy output and creates a Multi-indexed DataFrame for it
 
 if RE_Supply_Calculation:
-    Renewable_Energy = RE_supply().drop([None], axis=1).set_index(pd.Index(range(1, 8761)), inplace=False)
+    Renewable_Energy = RE_supply().set_index(pd.Index(range(1, 8761)), inplace=False)
 else:
     Renewable_Energy = pd.read_csv('Inputs/RES_Time_Series.csv', delimiter=';', decimal=',', header=0)
 
 if Demand_Profile_Generation:
     Demand = demand_generation()
-else:
-    Demand = pd.read_csv('Inputs/Demand.csv', delimiter=';', decimal=',', header=0)
+
+Demand = pd.read_csv('Inputs/Demand.csv', delimiter=';', decimal=',', header=0)
     
 # Drop columns where all values are NaN, as they don't contain any useful data
 Demand = Demand.dropna(how='all', axis=1)
@@ -192,7 +192,7 @@ def Initialize_RES_Energy(model, s, r, t):
 
 def Initialize_Battery_Unit_Repl_Cost(model):
     Unitary_Battery_Cost = model.Battery_Specific_Investment_Cost - model.Battery_Specific_Electronic_Investment_Cost
-    return Unitary_Battery_Cost/(model.Battery_Cycles*2*(1-model.Battery_Depth_of_Discharge))
+    return Unitary_Battery_Cost/(model.Battery_Cycles*2*(model.Battery_Depth_of_Discharge))
       
 
 def Initialize_Battery_Minimum_Capacity(model,ut): 
@@ -230,30 +230,12 @@ def Initialize_Battery_Minimum_Capacity(model,ut):
         Period_Average_Energy = Period_Energy.mean()
         Available_Energy = sum(Period_Average_Energy[s]*model.Scenario_Weight[s] for s in model.scenarios) 
         
-        return  Available_Energy/(1-model.Battery_Depth_of_Discharge)
-
-
-def Initialize_Fuel_Specific_Cost(model, g, y):
-    file_path = 'Inputs/Generation.xlsx'
-    fuel_cost_data = pd.read_excel(file_path, sheet_name='Fuel Specific Cost', index_col=0)
-
-    # Transpose the data so that generator types are rows and years are columns
-    fuel_cost_data = fuel_cost_data.T
-
-    # Create a dictionary for fuel costs
-    fuel_cost_dict = {(gen_type, year): fuel_cost_data.at[year, gen_type]
-                  for gen_type in fuel_cost_data.columns
-                  for year in fuel_cost_data.index}
-    try:
-        return fuel_cost_dict[(g, y)]
-    except KeyError:
-        raise ValueError(f"Fuel cost data not found for generator type {g} and year {y}")
-
+        return  Available_Energy/(model.Battery_Depth_of_Discharge)
 
 #%% 
 def Initialize_Generator_Marginal_Cost(model,g,y):
-    return model.Fuel_Specific_Cost[g,y]/(model.Fuel_LHV[g]*model.Generator_Efficiency[g])
-
+    return model.Fuel_Specific_Cost[g]/(model.Fuel_LHV[g]*model.Generator_Efficiency[g])
+   
 "Partial Load Effect"
 def Initialize_Generator_Start_Cost(model,g,y):
     return model.Generator_Marginal_Cost[g,y]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_pgen[g]

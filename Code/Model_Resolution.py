@@ -253,6 +253,8 @@ def Model_Resolution(model, datapath="Inputs/Parameters.dat",options_string="mip
            model.GeneratorMinStepCapacity = Constraint(model.years_steps, 
                                                        model.generator_types, 
                                                        rule=C.Generator_Min_Step_Capacity)         
+
+    
     "Grid constraints"  
     
     model.MaximumPowerFromGrid     = Constraint(model.scenarios,

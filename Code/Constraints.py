@@ -393,7 +393,7 @@ class Constraints_Greenfield():
         return model.Battery_SOC[s,yt,t] <= model.Battery_Nominal_Capacity[ut]
     
     def Minimun_Charge(model,s,yt,ut,t): # Minimun state of charge
-        return model.Battery_SOC[s,yt,t] >= model.Battery_Nominal_Capacity[ut]*model.Battery_Depth_of_Discharge
+        return model.Battery_SOC[s,yt,t] >= model.Battery_Nominal_Capacity[ut]*(1-model.Battery_Depth_of_Discharge)
     
     def Max_Power_Battery_Charge(model,ut): 
         return model.Battery_Maximum_Charge_Power[ut] == model.Battery_Nominal_Capacity[ut]/model.Maximum_Battery_Charge_Time
@@ -405,7 +405,7 @@ class Constraints_Greenfield():
         return model.Battery_Inflow[s,yt,t] <= model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
     
     def Max_Bat_out(model,s,yt,ut,t): # Minimum flow of energy for the discharge fase
-        return model.Battery_Outflow[s,yt,t] <= model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
+        return model.Battery_Outflow[s,yt,t] <= model.Energy_Demand[s,yt,t]
         
     def Battery_Min_Capacity(model,ut):    
         return   model.Battery_Nominal_Capacity[ut] >= model.Battery_Min_Capacity[ut]
@@ -417,10 +417,10 @@ class Constraints_Greenfield():
             return model.Battery_Nominal_Capacity[ut] == model.Battery_Nominal_Capacity[ut]
     
     def Battery_Single_Flow_Discharge(model,s,yt,ut,t):
-        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Large_Constant
+        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
     
     def Battery_Single_Flow_Charge(model,s,yt,ut,t):
-        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Large_Constant
+        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
     
     
     "Diesel generator constraints"
@@ -930,7 +930,7 @@ class Constraints_Brownfield():
         return model.Battery_SOC[s,yt,t] <= model.Battery_Nominal_Capacity[ut]
     
     def Minimun_Charge(model,s,yt,ut,t): # Minimun state of charge
-        return model.Battery_SOC[s,yt,t] >= model.Battery_Nominal_Capacity[ut]*model.Battery_Depth_of_Discharge
+        return model.Battery_SOC[s,yt,t] >= model.Battery_Nominal_Capacity[ut]*(1-model.Battery_Depth_of_Discharge)
     
     def Max_Power_Battery_Charge(model,ut): 
         return model.Battery_Maximum_Charge_Power[ut] == model.Battery_Nominal_Capacity[ut]/model.Maximum_Battery_Charge_Time
@@ -942,7 +942,7 @@ class Constraints_Brownfield():
         return model.Battery_Inflow[s,yt,t] <= model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
     
     def Max_Bat_out(model,s,yt,ut,t): # Minimum flow of energy for the discharge fase
-        return model.Battery_Outflow[s,yt,t] <= model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
+        return model.Battery_Outflow[s,yt,t] <= model.Energy_Demand[s,yt,t]
         
     def Battery_Min_Capacity(model,ut):    
         return   model.Battery_Nominal_Capacity[ut] >= model.Battery_Min_Capacity[ut]
@@ -954,10 +954,10 @@ class Constraints_Brownfield():
             return model.Battery_Nominal_Capacity[ut] == model.Battery_Nominal_Capacity[ut]
         
     def Battery_Single_Flow_Discharge(model,s,yt,ut,t):
-        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Large_Constant
+        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
     
     def Battery_Single_Flow_Charge(model,s,yt,ut,t):
-        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Large_Constant
+        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
         
     "Diesel generator constraints"
     def Maximun_Generator_Energy(model,s,yt,ut,g,t): # Maximum energy output of the diesel generator
@@ -1463,7 +1463,7 @@ class Constraints_Greenfield_Milp():
             return model.RES_Units_milp[ut,r] >= model.RES_Units_milp[ut-1,r]
         elif ut == 1:
             return model.RES_Units_milp[ut,r] == model.RES_Units_milp[ut,r]
-    
+  
     "Battery Energy Storage constraints"
     def State_of_Charge(model,s,yt,ut,t): # State of Charge of the battery
         if t==1 and yt==1: # The state of charge (State_Of_Charge) for the period 0 is equal to the Battery size.
@@ -1477,7 +1477,7 @@ class Constraints_Greenfield_Milp():
         return model.Battery_SOC[s,yt,t] <= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp
     
     def Minimun_Charge(model,s,yt,ut,t): # Minimun state of charge
-        return model.Battery_SOC[s,yt,t] >= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Depth_of_Discharge
+        return model.Battery_SOC[s,yt,t] >= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*(1-model.Battery_Depth_of_Discharge)
     
     def Max_Power_Battery_Charge(model,ut): 
         return model.Battery_Maximum_Charge_Power[ut] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp)/model.Maximum_Battery_Charge_Time
@@ -1489,7 +1489,7 @@ class Constraints_Greenfield_Milp():
         return model.Battery_Inflow[s,yt,t] <= model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
     
     def Max_Bat_out(model,s,yt,ut,t): # Minimum flow of energy for the discharge fase
-        return model.Battery_Outflow[s,yt,t] <= model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
+        return model.Battery_Outflow[s,yt,t] <=  model.Energy_Demand[s,yt,t]
         
     def Battery_Min_Capacity(model,ut):    
         return   model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp >= model.Battery_Min_Capacity[ut]
@@ -1501,10 +1501,10 @@ class Constraints_Greenfield_Milp():
             return model.Battery_Units[ut] == model.Battery_Units[ut]
     
     def Battery_Single_Flow_Discharge(model,s,yt,ut,t):
-        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Large_Constant
+        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
     
     def Battery_Single_Flow_Charge(model,s,yt,ut,t):
-        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Large_Constant
+        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
     
     "Diesel generator constraints"
     if Generator_Partial_Load:
@@ -2045,7 +2045,7 @@ class Constraints_Brownfield_Milp():
         return model.Battery_SOC[s,yt,t] <= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp
     
     def Minimun_Charge(model,s,yt,ut,t): # Minimun state of charge
-        return model.Battery_SOC[s,yt,t] >= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Depth_of_Discharge
+        return model.Battery_SOC[s,yt,t] >= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*(1-model.Battery_Depth_of_Discharge)
     
     def Max_Power_Battery_Charge(model,ut): 
         return model.Battery_Maximum_Charge_Power[ut] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp)/model.Maximum_Battery_Charge_Time
@@ -2057,7 +2057,7 @@ class Constraints_Brownfield_Milp():
         return model.Battery_Inflow[s,yt,t] <= model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
     
     def Max_Bat_out(model,s,yt,ut,t): # Minimum flow of energy for the discharge fase
-        return model.Battery_Outflow[s,yt,t] <= model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
+        return model.Battery_Outflow[s,yt,t] <= model.Energy_Demand[s,yt,t]
         
     def Battery_Min_Capacity(model,ut):    
         return   model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp >= model.Battery_Min_Capacity[ut]
@@ -2069,10 +2069,10 @@ class Constraints_Brownfield_Milp():
             return model.Battery_Units[ut] == model.Battery_Units[ut]
         
     def Battery_Single_Flow_Discharge(model,s,yt,ut,t):
-        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Large_Constant
+        return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
     
     def Battery_Single_Flow_Charge(model,s,yt,ut,t):
-        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Large_Constant
+        return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
         
     "Diesel generator constraints"
     if Generator_Partial_Load:

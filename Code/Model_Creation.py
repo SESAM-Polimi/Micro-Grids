@@ -194,8 +194,7 @@ def Model_Creation(model):
     model.FUEL_unit_CO2_emission             = Param(model.generator_types,
                                                      within=NonNegativeReals)
     model.Fuel_Specific_Cost                 = Param(model.generator_types,
-                                                     model.years,
-                                                     initialize=Initialize_Fuel_Specific_Cost)
+                                                       within=NonNegativeReals)
     model.Generator_Marginal_Cost            = Param(model.generator_types,
                                                      model.years,
                                                      initialize=Initialize_Generator_Marginal_Cost)
@@ -317,8 +316,7 @@ def Model_Creation(model):
     model.Single_Flow_BESS                     = Var(model.scenarios, 
                                                 model.years, 
                                                 model.periods,
-                                                within = Binary,
-                                                initialize=0)
+                                                within = Binary)
     # MILP Formulation
     model.Battery_Units         = Var(model.steps, 
                                       within=NonNegativeIntegers,
