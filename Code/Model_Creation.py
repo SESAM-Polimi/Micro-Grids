@@ -24,8 +24,8 @@ def Model_Creation(model):
 #%% PARAMETERS
 ############## 
 
-    "RES parameters"
-    
+
+    "RES Time Series Estimation parameters"
     model.base_URL= Param()
     model.loc_id = Param()
     model.parameters_1 = Param()			
@@ -53,8 +53,7 @@ def Model_Creation(model):
     model.turbine_model = Param()				 	
     model.drivetrain_efficiency = Param()             			
         
-    "Demand parameters"
-    
+    "Demand Estimation parameters"
     model.demand_growth = Param() 							
     model.cooling_period = Param() 							
     model.h_tier1 = Param()  								
@@ -70,39 +69,45 @@ def Model_Creation(model):
     model.hospital_5 = Param()					
       
     "Project parameters"
-    model.Periods                           = Param(within=NonNegativeReals)                          # Number of periods of analysis of the energy variables
-    model.Years                             = Param(within=NonNegativeReals)                          # Number of years of the project
-    model.Step_Duration                     = Param(within=NonNegativeReals)                          # Duration (in years) of each investment decision step in which the project lifetime will be split
-    model.Min_Last_Step_Duration            = Param(within=NonNegativeReals)                          # Minimum duration (in years) of the last investment decision step, in case of non-homogeneous divisions of the project lifetime
-    model.Delta_Time                        = Param(within=NonNegativeReals)                          # Time step in hours
-    model.StartDate                         = Param()                                                 # Start date of the analisis
-    model.Scenarios                         = Param(within=NonNegativeReals)                          # Number of scenarios to consider within the optimisation
-    model.Discount_Rate                     = Param(within=NonNegativeReals)                          # Discount rate of the project in %
-    model.Investment_Cost_Limit             = Param(within=NonNegativeReals)                          # Upper limit to investment cost [USD] (considered only in case Optimization_Goal='Operation cost')
-    model.Steps_Number                      = Param(initialize = Initialize_Upgrades_Number)          # Number of steps
-    model.RES_Sources                       = Param(within=NonNegativeReals)                          # Number of Renewable Energy Sources (RES) types
-    model.Generator_Types                   = Param(within=NonNegativeReals)                          # Number of different types of gensets
-    model.Year_Grid_Connection              = Param(within=NonNegativeReals)                          # Year at which microgrid is connected to the national grid (starting from 1)
-    model.Optimization_Goal                 = Param(within=NonNegativeReals,
-                                                    initialize=Initialize_Optimization_Goal)          # Options: 1 = NPC / 2 = Operation cost. It allows to switch between a NPC-oriented optimization and a NON-ACTUALIZED Operation Cost-oriented optimization
-    model.Multiobjective_Optimization       = Param(within=NonNegativeReals,
-                                              initialize=Initialize_Multiobjective_Optimization)      # 1 if optimization of NPC/operation cost and CO2 emissions,0 otherwise
-    model.MILP_Formulation                  = Param(within=NonNegativeReals,
-                                                    initialize=MILP_Formulation)                      # 1 to activate MILP formulation (for monodirectional energy flows), 0 otherwise
-    model.Generator_Partial_Load            = Param(within=NonNegativeReals,
-                                                    initialize=MILP_Formulation)                      # 1 to activate Partial Load effect on the operation costs of the generator, 0 otherwise
-    model.Greenfield_Investment             = Param(within=NonNegativeReals,
-                                                    initialize=Initialize_Greenfield_Investment)      # 1 if Greenfield investment, 0 Brownfield investment
-    model.Renewable_Penetration             = Param(within=NonNegativeReals,
-                                                    initialize=Initialize_Renewable_Penetration)      # Fraction of electricity produced by renewable sources. Number from 0 to 1.
-    model.RE_Supply_Calculation             = Param(within=NonNegativeReals) 
-    model.Demand_Profile_Generation         = Param(within=NonNegativeReals) 
-    model.Grid_Connection                   = Param(within=NonNegativeReals) 
-    model.Grid_Availability_Simulation      = Param(within=NonNegativeReals) 
-    model.Grid_Connection_Type              = Param(within=NonNegativeReals) 
-    model.Plot_Max_Cost                     = Param(within=NonNegativeReals,
-                                                    initialize=Initialize_Plot_Max_Cost) 
-                
+    model.Periods                           = Param(within=NonNegativeIntegers)                          # Number of periods of analysis of the energy variables
+    model.Years                             = Param(within=NonNegativeIntegers)                          # Number of years of the project
+    model.Step_Duration                     = Param(within=NonNegativeIntegers)                          # Duration (in years) of each investment decision step in which the project lifetime will be split
+    model.Min_Last_Step_Duration            = Param(within=NonNegativeIntegers)                          # Minimum duration (in years) of the last investment decision step, in case of non-homogeneous divisions of the project lifetime
+    model.Delta_Time                        = Param(within=NonNegativeReals)                             # Time step in hours
+    model.StartDate                         = Param()                                                    # Start date of the analisis
+    model.Scenarios                         = Param(within=NonNegativeIntegers)                          # Number of scenarios to consider within the optimisation
+    model.Real_Discount_Rate                = Param(within=NonNegativeReals)                             # Real Discount rate (default value) [%]
+    model.Discount_Rate                     = Param(within=NonNegativeReals,
+                                                    initialize = Initialize_Discount_Rate)               # Discount rate initialized according to WACC calculation [%]
+    model.Investment_Cost_Limit             = Param(within=NonNegativeReals)                             # Upper limit to investment cost [USD] (considered only in case Optimization_Goal='Operation cost')
+    model.Steps_Number                      = Param(initialize = Initialize_Upgrades_Number)             # Number of steps
+    model.RES_Sources                       = Param(within=NonNegativeIntegers)                          # Number of Renewable Energy Sources (RES) types
+    model.Generator_Types                   = Param(within=NonNegativeIntegers)                          # Number of different types of gensets
+    model.Year_Grid_Connection              = Param(within=NonNegativeIntegers)                          # Year at which microgrid is connected to the national grid (starting from 1)
+    model.Renewable_Penetration             = Param(within=NonNegativeReals)                             # Fraction of electricity produced by renewable sources. Number from 0 to 1. 
+    
+    # WACC Calculation
+    model.cost_of_equity                    = Param(within=NonNegativeReals)                             # Cost of equity (i.e., the return required by the equity shareholders) [-]
+    model.cost_of_debt                      = Param(within=NonNegativeReals)                             # Cost of debt (i.e., the interest rate) [-]
+    model.tax                               = Param(within=NonNegativeReals)                             # Corporate tax deduction (debt is assumed as tax deducible) [-]
+    model.equity_share                      = Param(within=NonNegativeReals)                             # Total level of equity [kUSD]
+    model.debt_share                        = Param(within=NonNegativeReals)                             # Total level of debt [kUSD]
+    
+    "Model Switches"
+    model.Optimization_Goal                 = Param(within=Binary)                                    # Options: 1 = NPC / 0 = Operation cost. It allows to switch between a NPC-oriented optimization and a NON-ACTUALIZED Operation Cost-oriented optimization
+    model.Multiobjective_Optimization       = Param(within=Binary)                                    # 1 if optimization of NPC/operation cost and CO2 emissions,0 otherwise
+    model.MILP_Formulation                  = Param(within=Binary)                                    # 1 to activate MILP formulation (for monodirectional energy flows), 0 otherwise
+    model.Generator_Partial_Load            = Param(within=Binary)                                    # 1 to activate Partial Load effect on the operation costs of the generator, 0 otherwise
+    model.Greenfield_Investment             = Param(within=Binary)                                    # 1 if Greenfield investment, 0 Brownfield investment
+    model.RE_Supply_Calculation             = Param(within=Binary)                                    # 1 to select solar PV and wind production time series calculation (using NASA POWER data), 0 otherwise
+    model.Demand_Profile_Generation         = Param(within=Binary)                                    # 1 to select load demand profile generation (with demand archetypes), 0 otherwise
+    model.Grid_Connection                   = Param(within=Binary)                                    # 1 to select grid connection during project lifetime, 0 otherwise
+    model.Grid_Availability_Simulation      = Param(within=Binary)                                    # 1 to simulate grid availability, 0 otherwise
+    model.Grid_Connection_Type              = Param(within=Binary)                                    # 0 for sell/purchase power with the national grid, 1 for purchase only
+    model.Plot_Max_Cost                     = Param(within=Binary)                                    # 1 if the Pareto curve has to include the point at maxNPC/maxOperationCost, 0 otherwise
+    model.Solver                            = Param(within=Binary)                                    # 1 for Gurobi solver, 0 for default
+    model.Model_Components                  = Param(within=NonNegativeIntegers)                       # 0 for batteries and generators, 1 for batteries only, 2 for generators only
+    model.WACC_Calculation                  = Param(within=Binary)                                    # 1 to select Weighted Average Cost of Capital calculation, 0 otherwise
 
     "Sets"
     model.periods                           = RangeSet(1, model.Periods)                                  # Creation of a set from 1 to the number of periods in each year
@@ -113,13 +118,11 @@ def Model_Creation(model):
     model.steps                             = RangeSet(1, model.Steps_Number)                             # Creation of a set from 1 to the number of investment decision steps
     model.years_steps                       = Set(dimen = 2, initialize=Initialize_YearUpgrade_Tuples)    # 2D set of tuples: it associates each year to the corresponding investment decision step
     model.years_grid_connection             = RangeSet(model.Year_Grid_Connection,model.Years)            # Creation of a set from year of grid connection to last year
-    model.Scenario_Weight                   = Param(model.scenarios, 
-                                                    within=NonNegativeReals)
-    
-# --- Renewable Sources ---
+    model.Scenario_Weight                   = Param(model.scenarios, within=NonNegativeReals)
+
 
     
-    "Parameters of RES" 
+    "Parameters of RES Technologies" 
     model.RES_Names                    = Param(model.renewable_sources)               # RES names
     model.RES_Nominal_Capacity         = Param(model.renewable_sources,
                                                within=NonNegativeReals)               # Nominal capacity of the RES in W/unit
@@ -129,21 +132,19 @@ def Model_Creation(model):
     model.RES_Specific_OM_Cost         = Param(model.renewable_sources,
                                                within=NonNegativeReals)               # Percentage of the total investment spend in operation and management of solar panels in each period in %                                             
     model.RES_Lifetime                 = Param(model.renewable_sources,
-                                               within=NonNegativeReals)
+                                               within=NonNegativeIntegers)            # Lifetime of each Renewable Energy Source (RES) [y]
     model.RES_units                    = Param(model.renewable_sources,
-                                               within=NonNegativeReals)
+                                               within=NonNegativeReals)               # Existing RES units [-] of nominal capacity
     model.RES_years                    = Param(model.renewable_sources,
-                                               within=NonNegativeReals)
+                                               within=NonNegativeIntegers)            # How many years ago the component was installed [y]
     model.RES_unit_CO2_emission        = Param(model.renewable_sources,
-                                               within=NonNegativeReals)                                    
+                                               within=NonNegativeReals)               # [kgCO2/kW]                                   
     model.RES_Unit_Energy_Production   = Param(model.scenarios,
                                               model.renewable_sources,
                                               model.periods, 
                                               within=NonNegativeReals, 
                                               initialize=Initialize_RES_Energy)      # Energy production of a RES in Wh
-    
-   
-# --- Battery bank ---
+
 
 
     "Parameters of the battery bank"
@@ -161,8 +162,7 @@ def Model_Creation(model):
     model.Battery_Initial_SOC                         = Param(within=NonNegativeReals)
     model.Battery_capacity                            = Param(within=NonNegativeReals)
     model.BESS_unit_CO2_emission                      = Param(within=NonNegativeReals)
-    model.Battery_Independence                        = Param(within=NonNegativeReals,
-                                                              initialize=Initialize_Battery_Independence)
+    model.Battery_Independence                        = Param(within=NonNegativeReals)
     model.Battery_Min_Capacity                        = Param(model.steps, 
                                                               initialize=Initialize_Battery_Minimum_Capacity)
     model.BESS_Large_Constant                         = Param(within=NonNegativeReals,
@@ -183,35 +183,37 @@ def Model_Creation(model):
     model.Generator_Specific_OM_Cost         = Param(model.generator_types,
                                                      within=NonNegativeReals)              # Cost of the diesel generator
     model.Generator_Lifetime                 = Param(model.generator_types,
-                                                     within=NonNegativeReals)    
+                                                     within=NonNegativeIntegers)    
     model.Fuel_Names                         = Param(model.generator_types)                # Fuel names
     model.Fuel_LHV                           = Param(model.generator_types,
                                                      within=NonNegativeReals)              # Low heating value of the fuel in kg/l
-    model.Generator_capacity                 = Param(model.generator_types, 
-                                                     within=NonNegativeReals)
     model.GEN_years                          = Param(model.generator_types,
-                                                     within=NonNegativeReals)
+                                                     within=NonNegativeIntegers)
     model.GEN_unit_CO2_emission              = Param(model.generator_types,
                                                      within=NonNegativeReals)
     model.FUEL_unit_CO2_emission             = Param(model.generator_types,
                                                      within=NonNegativeReals)
-    model.Fuel_Specific_Cost                 = Param(model.generator_types, 
-                                                     within=NonNegativeReals)
+    model.Fuel_Specific_Cost                 = Param(model.generator_types,
+                                                     model.years,
+                                                     initialize=Initialize_Fuel_Specific_Cost)
     model.Generator_Marginal_Cost            = Param(model.generator_types,
+                                                     model.years,
                                                      initialize=Initialize_Generator_Marginal_Cost)
     model.Generator_capacity                  = Param(model.generator_types,
                                                       within=NonNegativeReals)                             # Existing capacity of generator
-    "MILP Formulation" 
+    # MILP Formulation 
     model.Generator_Nominal_Capacity_milp     = Param(model.generator_types,
                                                       within=NonNegativeReals)                             # During the MILP optimization 𝐶 is defined as a parameter!
-    "Partial Load Effect"
+    # Partial Load Effect
     model.Generator_Min_output                = Param(model.generator_types,
                                                       within=NonNegativeReals)                             # Minimum percentage of energy output for the generator in part load
     model.Generator_pgen                      = Param(model.generator_types,
                                                       within=NonNegativeReals)                             # Percentage of the total operation cost of the generator system at full load
     model.Generator_Start_Cost                = Param(model.generator_types,
+                                                      model.years,
                                                       initialize=Initialize_Generator_Start_Cost)          # # Origin of the cost curve of the part load generator
     model.Generator_Marginal_Cost_milp        = Param(model.generator_types,
+                                                      model.years,
                                                       initialize=Initialize_Generator_Marginal_Cost_milp)  # Slope of the cost curve of the part load generator
 
 # --- National Grid ---
@@ -256,172 +258,204 @@ def Model_Creation(model):
 #%% VARIABLES
 #############
 
-# --- Renewable sources ---
 
 
     "Variables associated to the RES"
     model.RES_Units             = Var(model.steps, 
                                       model.renewable_sources,
-                                      within=NonNegativeReals)                      # Number of units of RES (LP Formulation)
+                                      within=NonNegativeReals,
+                                      initialize=0.0)                      # Number of units of RES (LP Formulation)
     model.RES_Energy_Production = Var(model.scenarios, 
                                       model.years,
                                       model.renewable_sources,
                                       model.periods,
-                                      within=NonNegativeReals)                      # Energy generated by the RES sistem in Wh
-    model.RES_emission          = Var(within=NonNegativeReals)
-    "MILP Formulation"
+                                      within=NonNegativeReals,
+                                      initialize=0.0)                      # Energy generated by the RES sistem in Wh
+    model.RES_emission          = Var(within=NonNegativeReals,initialize=0.0)
+    
+    # MILP Formulation
     model.RES_Units_milp        = Var(model.steps, 
                                       model.renewable_sources,
-                                      within=NonNegativeIntegers)                   # Number of units of RES (MILP Formulation)
+                                      within=NonNegativeIntegers,
+                                      initialize=0)                   # Number of units of RES (MILP Formulation)
 
-# --- Battery bank ---
 
     "Variables associated to the battery bank"
     model.Battery_Nominal_Capacity        = Var(model.steps, 
-                                                within=NonNegativeReals)            # Capacity of the battery bank in Wh
+                                                within=NonNegativeReals,
+                                                initialize=0.0)            # Capacity of the battery bank in Wh
     model.Battery_Outflow                 = Var(model.scenarios, 
                                                 model.years, 
                                                 model.periods,
-                                                within=NonNegativeReals)            # Battery discharge energy in Wh
+                                                within=NonNegativeReals,
+                                                initialize=0.0)            # Battery discharge energy in Wh
     model.Battery_Inflow                  = Var(model.scenarios,
                                                 model.years, 
                                                 model.periods, 
-                                                within=NonNegativeReals)            # Battery charge energy in Wh
+                                                within=NonNegativeReals,
+                                                initialize=0.0)            # Battery charge energy in Wh
     
     model.Battery_SOC                     = Var(model.scenarios, 
                                                 model.years, 
                                                 model.periods, 
-                                                within=NonNegativeReals)            # State of Charge of the Battery in Wh
+                                                within=NonNegativeReals,
+                                                initialize=0.0)            # State of Charge of the Battery in Wh
     model.Battery_Maximum_Charge_Power    = Var(model.steps, 
-                                                within=NonNegativeReals)
+                                                within=NonNegativeReals,
+                                                initialize=0.0)
     model.Battery_Maximum_Discharge_Power = Var(model.steps,
-                                                within=NonNegativeReals)
+                                                within=NonNegativeReals,
+                                                initialize=0.0)
     model.Battery_Replacement_Cost_Act    = Var(model.scenarios,
-                                                within=NonNegativeReals)
+                                                within=NonNegativeReals,
+                                                initialize=0.0)
     model.Battery_Replacement_Cost_NonAct = Var(model.scenarios,
-                                                within=NonNegativeReals)
-    model.BESS_emission                   = Var(within=NonNegativeReals)
+                                                within=NonNegativeReals,
+                                                initialize=0.0)
+    model.BESS_emission                   = Var(within=NonNegativeReals,
+                                                initialize=0.0)
     model.Single_Flow_BESS                     = Var(model.scenarios, 
                                                 model.years, 
                                                 model.periods,
-                                                within = Binary)
-    "MILP Formulation"
+                                                within = Binary,
+                                                initialize=0)
+    # MILP Formulation
     model.Battery_Units         = Var(model.steps, 
-                                      within=NonNegativeIntegers)                   # Number of units of Battery
+                                      within=NonNegativeIntegers,
+                                      initialize=0)                   # Number of units of Battery
 
-# --- Generators ---
 
     "Variables associated to the diesel generator"
     model.Generator_Nominal_Capacity  = Var(model.steps, 
                                             model.generator_types,
-                                            within=NonNegativeReals)                # Capacity  of the diesel generator in Wh
+                                            within=NonNegativeReals,
+                                            initialize=0.0)                # Capacity  of the diesel generator in Wh
     model.Generator_Energy_Production = Var(model.scenarios, 
                                             model.years,
                                             model.generator_types,
                                             model.periods, 
-                                            within=NonNegativeReals)                # Energy generated by the Diesel generator
+                                            within=NonNegativeReals,
+                                            initialize=0.0)                # Energy generated by the Diesel generator
     model.Total_Fuel_Cost_Act         = Var(model.scenarios,
                                             model.generator_types,
-                                            within=NonNegativeReals)
+                                            within=NonNegativeReals,
+                                            initialize=0.0)
     model.Total_Fuel_Cost_NonAct      = Var(model.scenarios, 
                                             model.generator_types,
-                                            within=NonNegativeReals)
-    model.GEN_emission                = Var(within=NonNegativeReals)
+                                            within=NonNegativeReals,
+                                            initialize=0.0)
+    model.GEN_emission                = Var(within=NonNegativeReals,initialize=0.0)
     model.FUEL_emission               = Var(model.scenarios, 
                                             model.years,
                                             model.generator_types,
                                             model.periods, 
-                                            within=NonNegativeReals)
+                                            within=NonNegativeReals,
+                                            initialize=0.0)
     model.Scenario_FUEL_emission      = Var(model.scenarios,
-                                            within=NonNegativeReals)
+                                            within=NonNegativeReals,
+                                            initialize=0.0)
 
-    "MILP Formulation"
+    # MILP Formulation
     model.Generator_Units                   = Var(model.steps, 
                                                   model.generator_types,
-                                                  within=NonNegativeIntegers)   # Total number of generators
+                                                  within=NonNegativeIntegers,
+                                                  initialize=0)                # Total number of generators
     model.Generator_Energy_Total            = Var(model.scenarios,
                                                   model.years,
                                                   model.generator_types,
                                                   model.periods,
-                                                  within=NonNegativeReals)       # Total Energy Production of the generator
-    "Partial Load Effect"
+                                                  within=NonNegativeReals,
+                                                  initialize=0.0)              # Total Energy Production of the generator
+    # Partial Load Effect 
     model.Generator_Partial                 = Var(model.scenarios,
                                                   model.years,
                                                   model.generator_types,
                                                   model.periods,
-                                                  within=Binary)                # Binary that controls if there will be a generator in part load 
+                                                  within=Binary,
+                                                  initialize=0)               # Binary that controls if there will be a generator in part load 
     model.Generator_Full                    = Var(model.scenarios,
                                                   model.years,
                                                   model.generator_types,
                                                   model.periods,
-                                                  within=NonNegativeIntegers)    # Number of generator in full load
+                                                  within=NonNegativeIntegers,
+                                                  initialize=0)                # Number of generator in full load
     model.Generator_Energy_Partial          = Var(model.scenarios,
                                                   model.years,
                                                   model.generator_types,
                                                   model.periods,
-                                                  within=NonNegativeReals)       # Energy produced by the last generator in partial load
+                                                  within=NonNegativeReals,
+                                                  initialize=0.0)              # Energy produced by the last generator in partial load
 
 
-# --- National Grid ---
 
     "Variable associated to the National Grid"  
     model.Total_Revenues_Act                = Var(model.scenarios,
-                                                  within=NonNegativeReals)
+                                                  within=NonNegativeReals,initialize=0.0)
     model.Total_Revenues_NonAct             = Var(model.scenarios,
-                                                  within=NonNegativeReals)
+                                                  within=NonNegativeReals,initialize=0.0)
     model.Total_Electricity_Cost_Act        = Var(model.scenarios,
-                                                  within=NonNegativeReals)
+                                                  within=NonNegativeReals,initialize=0.0)
     model.Total_Electricity_Cost_NonAct     = Var(model.scenarios,
-                                                  within=NonNegativeReals)
+                                                  within=NonNegativeReals,initialize=0.0)
     model.Energy_To_Grid                    = Var(model.scenarios, 
                                                   model.years,
                                                   model.periods, 
-                                                  within=NonNegativeReals)
+                                                  within=NonNegativeReals,initialize=0.0)
     model.Energy_From_Grid                  = Var(model.scenarios, 
                                                   model.years,
                                                   model.periods, 
-                                                  within=NonNegativeReals)
+                                                  within=NonNegativeReals,initialize=0.0)
     model.GRID_emission                     = Var(model.scenarios, 
                                                   model.years,
                                                   model.periods, 
-                                                  within=NonNegativeReals)    
+                                                  within=NonNegativeReals,initialize=0.0)    
     model.Scenario_GRID_emission            = Var(model.scenarios,
-                                                  within=NonNegativeReals)
+                                                  within=NonNegativeReals,initialize=0.0)
     model.Single_Flow_Grid                  = Var(model.scenarios,
                                                   model.years,
                                                   model.periods, 
-                                                  within=Binary)  
+                                                  within=Binary,
+                                                  initialize=0)  
+    
     "Variables associated to the energy balance"
     model.Lost_Load                      = Var(model.scenarios, 
                                                model.years, 
                                                model.periods, 
-                                               within=NonNegativeReals)                      # Energy not supplied by the system kWh
+                                               within=NonNegativeReals,
+                                               initialize=0.0)                      # Energy not supplied by the system kWh
     model.Energy_Curtailment             = Var(model.scenarios,
                                                model.years,
                                                model.periods, 
-                                               within=NonNegativeReals)                      # Curtailment of RES in kWh
+                                               within=NonNegativeReals,
+                                               initialize=0.0)                      # Curtailment of RES in kWh
     model.Scenario_Lost_Load_Cost_Act    = Var(model.scenarios, 
-                                               within=NonNegativeReals) 
+                                               within=NonNegativeReals,
+                                               initialize=0.0) 
     model.Scenario_Lost_Load_Cost_NonAct = Var(model.scenarios,
-                                               within=NonNegativeReals)    
+                                               within=NonNegativeReals,
+                                               initialize=0.0)    
     
 
     "Variables associated to the project"
-    model.Net_Present_Cost                    = Var(within=Reals)
+    model.Net_Present_Cost                    = Var(within=Reals, initialize=0.0)
     model.Scenario_Net_Present_Cost           = Var(model.scenarios, 
-                                                    within=Reals) 
-    model.Total_Variable_Cost                 = Var(within=Reals)
-    model.CO2_emission                        = Var(within=NonNegativeReals)
+                                                    within=Reals,
+                                                    initialize=0.0) 
+    model.Total_Variable_Cost                 = Var(within=Reals,initialize=0.0)
+    model.CO2_emission                        = Var(within=NonNegativeReals, initialize=0.0)
     model.Scenario_CO2_emission               = Var(model.scenarios, 
-                                                    within=NonNegativeReals)
-    model.Investment_Cost                     = Var(within=NonNegativeReals)
-    model.Salvage_Value                       = Var(within=NonNegativeReals)   
-    model.Total_Variable_Cost_Act             = Var(within=Reals) 
-    model.Operation_Maintenance_Cost_Act      = Var(within=Reals)
-    model.Operation_Maintenance_Cost_NonAct   = Var(within=Reals)
+                                                    within=NonNegativeReals,
+                                                    initialize=0.0)
+    model.Investment_Cost                     = Var(within=NonNegativeReals,initialize=0.0)
+    model.Salvage_Value                       = Var(within=NonNegativeReals,initialize=0.0)   
+    model.Total_Variable_Cost_Act             = Var(within=Reals,initialize=0.0) 
+    model.Operation_Maintenance_Cost_Act      = Var(within=Reals,initialize=0.0)
+    model.Operation_Maintenance_Cost_NonAct   = Var(within=Reals,initialize=0.0)
     model.Total_Scenario_Variable_Cost_Act    = Var(model.scenarios, 
-                                                    within=Reals) 
+                                                    within=Reals,
+                                                    initialize=0.0) 
     model.Total_Scenario_Variable_Cost_NonAct = Var(model.scenarios, 
-                                                    within=Reals) 
+                                                    within=Reals,
+                                                    initialize=0.0) 
 
 

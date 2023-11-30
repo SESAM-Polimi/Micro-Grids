@@ -3,7 +3,7 @@ import re
 ##############################################################################################################################################################
 ###################################################################### LP FORMULATION ########################################################################
 ##############################################################################################################################################################
-     
+
 #%%
 # --- Greenfield ---
 
@@ -17,7 +17,6 @@ class Constraints_Greenfield():
     
     def Total_Variable_Cost_Obj(model):
         return (sum(model.Total_Scenario_Variable_Cost_NonAct[s]*model.Scenario_Weight[s] for s in model.scenarios))
-    
     
     "Net Present Cost"
     def Net_Present_Cost(model):   
@@ -40,8 +39,13 @@ class Constraints_Greenfield():
         return model.CO2_emission == (sum(model.Scenario_CO2_emission[s]*model.Scenario_Weight[s] for s in model.scenarios))
     
     def Scenario_CO2_emission(model,s):
-        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
-    
+        if model.Model_Components == 0:
+            return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 1:
+            return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 2:
+            return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+        
     "Investment cost"
     def Investment_Cost(model):  
         upgrade_years_list = [1 for i in range(len(model.steps))]
@@ -69,12 +73,16 @@ class Constraints_Greenfield():
                         + sum((((model.Battery_Nominal_Capacity[ut] - model.Battery_Nominal_Capacity[ut-1])*model.Battery_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
                         for (yt,ut) in tup_list)) 
         
-        return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat    
+        if model.Model_Components == 0:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat    
+        if model.Model_Components == 1:
+            return model.Investment_Cost == Inv_Ren + Inv_Bat      
+        if model.Model_Components == 2:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen     
     
     def Investment_Cost_Limit(model):
         return model.Investment_Cost <= model.Investment_Cost_Limit
        
-    
     "Fixed O&M costs"
     def Operation_Maintenance_Cost_Act(model):
         OyM_Ren = sum(sum((model.RES_Units[ut,r]*model.RES_Nominal_Capacity[r]*model.RES_Specific_Investment_Cost[r]*model.RES_Specific_OM_Cost[r])/((
@@ -83,8 +91,13 @@ class Constraints_Greenfield():
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)/((
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
-        return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
-    
+        
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen 
     
     def Operation_Maintenance_Cost_NonAct(model):
         OyM_Ren = sum(sum((model.RES_Units[ut,r]*model.RES_Nominal_Capacity[r]*model.RES_Specific_Investment_Cost[r]*model.RES_Specific_OM_Cost[r])
@@ -93,8 +106,13 @@ class Constraints_Greenfield():
                         for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)
                         for (yt,ut) in model.years_steps)
-        return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
-    
+        
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen 
     
     "Variable costs"
     def Total_Variable_Cost_Act(model):
@@ -107,7 +125,13 @@ class Constraints_Greenfield():
         Fuel_Cost = sum(model.Total_Fuel_Cost_Act[s,g] for s,g in foo)   
         Electricity_Cost = model.Total_Electricity_Cost_Act[s] 
         Electricity_Revenues = model.Total_Revenues_Act[s]
-        return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
     
     def Scenario_Variable_Cost_NonAct(model, s): 
         foo = []
@@ -116,7 +140,13 @@ class Constraints_Greenfield():
         Fuel_Cost = sum(model.Total_Fuel_Cost_NonAct[s,g] for s,g in foo)  
         Electricity_Cost = model.Total_Electricity_Cost_NonAct[s]     
         Electricity_Revenues = model.Total_Revenues_NonAct[s]
-        return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
     
     def Scenario_Lost_Load_Cost_Act(model,s):    
         Cost_Lost_Load = 0         
@@ -135,16 +165,17 @@ class Constraints_Greenfield():
     def Total_Fuel_Cost_Act(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num/((1+model.Discount_Rate)**y)
         return model.Total_Fuel_Cost_Act[s,g] == Fuel_Cost_Tot
        
     def Total_Fuel_Cost_NonAct(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num
         return model.Total_Fuel_Cost_NonAct[s,g] == Fuel_Cost_Tot
+
     
     def Total_Electricity_Cost_Act(model,s): 
         Electricity_Cost_Tot = 0
@@ -256,8 +287,11 @@ class Constraints_Greenfield():
             SV_Gen_3 = sum(sum((model.Generator_Nominal_Capacity[ut,g] - model.Generator_Nominal_Capacity[ut-1,g])*model.Generator_Specific_Investment_Cost[g] * (model.Generator_Lifetime[g]+(yt-1)-model.Years)/model.Generator_Lifetime[g] / 
                             ((1+model.Discount_Rate)**model.Years) for (yt,ut) in tup_list_2) for g in model.generator_types)
             SV_Grid = model.Grid_Distance*model.Grid_Connection_Cost*model.Grid_Connection / ((1 + model.Discount_Rate)**(model.Years)) 
-            
-        return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid 
+         
+        if model.Model_Components == 0 or model.Model_Components == 2:
+            return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid 
+        if model.Model_Components == 1:
+            return model.Salvage_Value ==  SV_Ren_1 + SV_Ren_2 + SV_Ren_3 + SV_Grid 
     
     def Energy_balance(model,s,yt,ut,t): # Energy balance
         Foo = []
@@ -270,14 +304,31 @@ class Constraints_Greenfield():
         Total_Generator_Energy = sum(model.Generator_Energy_Production[i] for i in foo)
         En_From_Grid = model.Energy_From_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
         En_To_Grid = model.Energy_To_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
-        return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
-                                               + Total_Generator_Energy
-                                               + En_From_Grid
-                                               - En_To_Grid 
-                                               + model.Battery_Outflow[s,yt,t]
-                                               - model.Battery_Inflow[s,yt,t] 
-                                               + model.Lost_Load[s,yt,t]  
-                                               - model.Energy_Curtailment[s,yt,t] )     
+       
+        if model.Model_Components == 0:
+           return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Battery_Outflow[s,yt,t]
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        if model.Model_Components == 1:
+           return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Battery_Outflow[s,yt,t]
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        if model.Model_Components == 2:
+           return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
     
     
     "Renewable Energy Sources constraints"
@@ -512,8 +563,12 @@ class Constraints_Brownfield():
         return model.CO2_emission == (sum(model.Scenario_CO2_emission[s]*model.Scenario_Weight[s] for s in model.scenarios))
     
     def Scenario_CO2_emission(model,s):
-        return model.Scenario_CO2_emission[s] == (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
-    
+        if model.Model_Components == 0:
+            return model.Scenario_CO2_emission[s] == (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 1:
+            return model.Scenario_CO2_emission[s] == (model.RES_emission + model.BESS_emission + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 2:
+            return model.Scenario_CO2_emission[s] == (model.RES_emission + model.GEN_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
     
     "Investment cost"
     def Investment_Cost(model):  
@@ -542,11 +597,15 @@ class Constraints_Brownfield():
                         + sum((((model.Battery_Nominal_Capacity[ut] - model.Battery_Nominal_Capacity[ut-1])*model.Battery_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
                         for (yt,ut) in tup_list))
         
-        return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat 
+        if model.Model_Components == 0:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat 
+        if model.Model_Components == 1:
+            return model.Investment_Cost == Inv_Ren + Inv_Bat 
+        if model.Model_Components == 2:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen 
     
     def Investment_Cost_Limit(model):
         return model.Investment_Cost <= model.Investment_Cost_Limit
-       
     
     "Fixed O&M costs"
     def Operation_Maintenance_Cost_Act(model):
@@ -556,7 +615,13 @@ class Constraints_Brownfield():
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)/((
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
-        return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
+        
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen 
     
     
     def Operation_Maintenance_Cost_NonAct(model):
@@ -566,7 +631,13 @@ class Constraints_Brownfield():
                         for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)
                         for (yt,ut) in model.years_steps)
-        return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
+       
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen 
     
     
     "Variable costs"
@@ -579,7 +650,13 @@ class Constraints_Brownfield():
                 foo.append((s,g))   
         Fuel_Cost = sum(model.Total_Fuel_Cost_Act[s,g] for s,g in foo)    
         Electricity_Cost = model.Total_Electricity_Cost_Act[s]     
-        return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_Act[s]     
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_Act[s]     
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Electricity_Cost - model.Total_Revenues_Act[s]     
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_Act[s]     
     
     def Scenario_Variable_Cost_NonAct(model, s):
         foo = []
@@ -587,7 +664,13 @@ class Constraints_Brownfield():
                 foo.append((s,g))   
         Fuel_Cost = sum(model.Total_Fuel_Cost_NonAct[s,g] for s,g in foo)    
         Electricity_Cost = model.Total_Electricity_Cost_NonAct[s]     
-        return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost- model.Total_Revenues_NonAct[s] 
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_NonAct[s] 
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Electricity_Cost - model.Total_Revenues_NonAct[s] 
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_NonAct[s] 
     
     def Scenario_Lost_Load_Cost_Act(model,s):    
         Cost_Lost_Load = 0         
@@ -606,14 +689,14 @@ class Constraints_Brownfield():
     def Total_Fuel_Cost_Act(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[s,y,g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num/((1+model.Discount_Rate)**y)
         return model.Total_Fuel_Cost_Act[s,g] == Fuel_Cost_Tot
        
     def Total_Fuel_Cost_NonAct(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[s,y,g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Production[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num
         return model.Total_Fuel_Cost_NonAct[s,g] == Fuel_Cost_Tot
     
@@ -735,8 +818,10 @@ class Constraints_Brownfield():
                             ((1+model.Discount_Rate)**model.Years) for (yt,ut) in tup_list_2) for g in model.generator_types)
             SV_Grid = model.Grid_Distance*model.Grid_Connection_Cost*model.Grid_Connection / ((1 + model.Discount_Rate)**(model.Years)) 
        
-        return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid
-    
+        if model.Model_Components == 0 or model.Model_Components == 2:
+            return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid
+        if model.Model_Components == 1:
+            return model.Salvage_Value ==  SV_Ren_1 + SV_Ren_2 + SV_Ren_3 + SV_Grid
     
     def BESS_Capacity(model,ut): #Minimum battery capacity 
         return model.Battery_Nominal_Capacity[1] >= model.Battery_capacity
@@ -758,15 +843,31 @@ class Constraints_Brownfield():
         Total_Generator_Energy = sum(model.Generator_Energy_Production[i] for i in foo)  
         En_From_Grid = model.Energy_From_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
         En_To_Grid = model.Energy_To_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
-        return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
-                                               + Total_Generator_Energy
-                                               + En_From_Grid
-                                               - En_To_Grid 
-                                               - model.Battery_Inflow[s,yt,t] 
-                                               + model.Battery_Outflow[s,yt,t] 
-                                               + model.Lost_Load[s,yt,t]  
-                                               - model.Energy_Curtailment[s,yt,t] )     
-    
+        
+        if model.Model_Components == 0:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Battery_Outflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        if model.Model_Components == 1:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Battery_Outflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )    
+        if model.Model_Components == 2:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )    
     
     "Renewable Energy Sources constraints"
     def Renewable_Energy(model,s,yt,ut,r,t): # Energy output of the solar panels
@@ -816,7 +917,6 @@ class Constraints_Brownfield():
         elif ut == 1:
             return model.RES_Units[ut,r] == model.RES_Units[ut,r]
     
-    
     "Battery Energy Storage constraints"
     def State_of_Charge(model,s,yt,ut,t): # State of Charge of the battery
         if t==1 and yt==1: # The state of charge (State_Of_Charge) for the period 0 is equal to the Battery size.
@@ -859,7 +959,6 @@ class Constraints_Brownfield():
     def Battery_Single_Flow_Charge(model,s,yt,ut,t):
         return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Large_Constant
         
-    
     "Diesel generator constraints"
     def Maximun_Generator_Energy(model,s,yt,ut,g,t): # Maximum energy output of the diesel generator
         return model.Generator_Energy_Production[s,yt,g,t] <= model.Generator_Nominal_Capacity[ut,g]*model.Delta_Time
@@ -869,7 +968,6 @@ class Constraints_Brownfield():
             return model.Generator_Nominal_Capacity[ut,g] >= model.Generator_Nominal_Capacity[ut-1,g]
         elif ut ==1:
             return model.Generator_Nominal_Capacity[ut,g] == model.Generator_Nominal_Capacity[ut,g]
-    
     
     "Lost load constraints"
     def Maximun_Lost_Load(model,s,yt): # Maximum admittable lost load
@@ -973,7 +1071,7 @@ class Constraints_Brownfield():
 # --- Greenfield ---
 
 class Constraints_Greenfield_Milp():
-    Data_file = "Inputs/Model_data.dat"
+    Data_file = "Inputs/Parameters.dat"
     Data_import = open(Data_file).readlines()
     for i in range(len(Data_import)):
      if "param: Generator_Partial_Load" in Data_import[i]:      
@@ -1011,7 +1109,12 @@ class Constraints_Greenfield_Milp():
         return model.CO2_emission == (sum(model.Scenario_CO2_emission[s]*model.Scenario_Weight[s] for s in model.scenarios))
     
     def Scenario_CO2_emission(model,s):
-        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 0:
+            return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 1:
+            return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 2:
+            return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
     
     "Investment cost"
     def Investment_Cost(model):  
@@ -1040,13 +1143,16 @@ class Constraints_Greenfield_Milp():
                         + sum((((model.Battery_Units[ut] - model.Battery_Units[ut-1])*model.Battery_Nominal_Capacity_milp*model.Battery_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
                         for (yt,ut) in tup_list)) 
         
-        return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat
+        if model.Model_Components == 0:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat
+        if model.Model_Components == 1:
+            return model.Investment_Cost == Inv_Ren + Inv_Bat
+        if model.Model_Components == 2:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen
 
-    
     def Investment_Cost_Limit(model):
         return model.Investment_Cost <= model.Investment_Cost_Limit
        
-    
     "Fixed O&M costs"
     def Operation_Maintenance_Cost_Act(model):
         OyM_Ren = sum(sum((model.RES_Units_milp[ut,r]*model.RES_Nominal_Capacity[r]*model.RES_Specific_Investment_Cost[r]*model.RES_Specific_OM_Cost[r])/((
@@ -1056,8 +1162,12 @@ class Constraints_Greenfield_Milp():
         OyM_Bat = sum((model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)/((
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
         
-
-        return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen  
 
     
     def Operation_Maintenance_Cost_NonAct(model):
@@ -1068,10 +1178,13 @@ class Constraints_Greenfield_Milp():
         OyM_Bat = sum((model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)
                         for (yt,ut) in model.years_steps)
 
-        return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen 
 
-    
-    
     "Variable costs"
     def Total_Variable_Cost_Act(model):
         return model.Total_Variable_Cost_Act == (sum(model.Total_Scenario_Variable_Cost_Act[s]*model.Scenario_Weight[s] for s in model.scenarios))
@@ -1083,7 +1196,13 @@ class Constraints_Greenfield_Milp():
         Fuel_Cost = sum(model.Total_Fuel_Cost_Act[s,g] for s,g in foo)   
         Electricity_Cost = model.Total_Electricity_Cost_Act[s] 
         Electricity_Revenues = model.Total_Revenues_Act[s]
-        return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
     
     def Scenario_Variable_Cost_NonAct(model, s): 
         foo = []
@@ -1092,7 +1211,13 @@ class Constraints_Greenfield_Milp():
         Fuel_Cost = sum(model.Total_Fuel_Cost_NonAct[s,g] for s,g in foo)  
         Electricity_Cost = model.Total_Electricity_Cost_NonAct[s]     
         Electricity_Revenues = model.Total_Revenues_NonAct[s]
-        return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Electricity_Cost - Electricity_Revenues
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
     
     def Scenario_Lost_Load_Cost_Act(model,s):    
         Cost_Lost_Load = 0         
@@ -1113,28 +1238,28 @@ class Constraints_Greenfield_Milp():
      def Total_Fuel_Cost_Act(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g])+(model.Generator_Marginal_Cost_milp[g]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g])) for t in model.periods)
+            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g,y])+(model.Generator_Marginal_Cost_milp[g,y]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g,y])) for t in model.periods)
             Fuel_Cost_Tot += Num/((1+model.Discount_Rate)**y)
         return model.Total_Fuel_Cost_Act[s,g] == Fuel_Cost_Tot
        
      def Total_Fuel_Cost_NonAct(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g])+(model.Generator_Marginal_Cost_milp[g]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g])) for t in model.periods)
+            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g,y])+(model.Generator_Marginal_Cost_milp[g,y]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g,y])) for t in model.periods)
             Fuel_Cost_Tot += Num
         return model.Total_Fuel_Cost_NonAct[s,g] == Fuel_Cost_Tot
     else:
      def Total_Fuel_Cost_Act(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num/((1+model.Discount_Rate)**y)
         return model.Total_Fuel_Cost_Act[s,g] == Fuel_Cost_Tot
        
      def Total_Fuel_Cost_NonAct(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num
         return model.Total_Fuel_Cost_NonAct[s,g] == Fuel_Cost_Tot
 
@@ -1249,7 +1374,10 @@ class Constraints_Greenfield_Milp():
                             ((1+model.Discount_Rate)**model.Years) for (yt,ut) in tup_list_2) for g in model.generator_types)
             SV_Grid = model.Grid_Distance*model.Grid_Connection_Cost*model.Grid_Connection / ((1 + model.Discount_Rate)**(model.Years)) 
             
-        return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid 
+        if model.Model_Components == 0 or model.Model_Components == 2:
+            return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid 
+        if model.Model_Components == 1:
+            return model.Salvage_Value ==  SV_Ren_1 + SV_Ren_2 + SV_Ren_3 + SV_Grid 
     
     def Energy_balance(model,s,yt,ut,t): # Energy balance
         Foo = []
@@ -1262,16 +1390,32 @@ class Constraints_Greenfield_Milp():
         Total_Generator_Energy = sum(model.Generator_Energy_Total[i] for i in foo)
         En_From_Grid = model.Energy_From_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
         En_To_Grid = model.Energy_To_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
-        return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
-                                               + Total_Generator_Energy
-                                               + En_From_Grid
-                                               - En_To_Grid 
-                                               + model.Battery_Outflow[s,yt,t]
-                                               - model.Battery_Inflow[s,yt,t] 
-                                               + model.Lost_Load[s,yt,t]  
-                                               - model.Energy_Curtailment[s,yt,t] )     
-    
-    
+        
+        if model.Model_Components == 0:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Battery_Outflow[s,yt,t]
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        if model.Model_Components == 1:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Battery_Outflow[s,yt,t]
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        if model.Model_Components == 2:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        
     "Renewable Energy Sources constraints"
     def Renewable_Energy(model,s,yt,ut,r,t): # Energy output of the RES
         return model.RES_Energy_Production[s,yt,r,t] == model.RES_Unit_Energy_Production[s,r,t]*model.RES_Inverter_Efficiency[r]*model.RES_Units_milp[ut,r]
@@ -1319,7 +1463,6 @@ class Constraints_Greenfield_Milp():
             return model.RES_Units_milp[ut,r] >= model.RES_Units_milp[ut-1,r]
         elif ut == 1:
             return model.RES_Units_milp[ut,r] == model.RES_Units_milp[ut,r]
-    
     
     "Battery Energy Storage constraints"
     def State_of_Charge(model,s,yt,ut,t): # State of Charge of the battery
@@ -1389,7 +1532,6 @@ class Constraints_Greenfield_Milp():
         elif ut ==1:
             return model.Generator_Units[ut,g] == model.Generator_Units[ut,g]
 
-    
     "Lost load constraints"
     def Maximun_Lost_Load(model,s,yt): # Maximum admittable lost load
         return model.Lost_Load_Fraction >= (sum(model.Lost_Load[s,yt,t] for t in model.periods)/sum(model.Energy_Demand[s,yt,t] for t in model.periods))
@@ -1413,7 +1555,6 @@ class Constraints_Greenfield_Milp():
             
         return model.RES_emission == sum(model.RES_unit_CO2_emission[r]*model.RES_Units_milp[1,r]*model.RES_Nominal_Capacity[r]/1e3 for r in model.renewable_sources)+sum(sum(model.RES_unit_CO2_emission[r]*(model.RES_Units_milp[ut,r]-model.RES_Units_milp[ut-1,r])*model.RES_Nominal_Capacity[r]/1e3 for (yt,ut) in tup_list) for r in model.renewable_sources)
 
-
     def GEN_emission(model): #LCA emissions of generator
         upgrade_years_list = [1 for i in range(len(model.steps))]
         s_dur = model.Step_Duration 
@@ -1430,14 +1571,11 @@ class Constraints_Greenfield_Milp():
         for i in range(0, len(model.steps) - 1):
             tup_list[i] = yu_tuples_list[model.Step_Duration*i + model.Step_Duration]
             
-            
         return model.GEN_emission == sum((model.Generator_Units[1,g]*model.Generator_Nominal_Capacity_milp[g])/1e3*model.GEN_unit_CO2_emission[g] for g in model.generator_types)+sum(sum(((model.Generator_Units[ut,g]-model.Generator_Units[ut-1,g])*model.Generator_Nominal_Capacity_milp[g])/1e3*model.GEN_unit_CO2_emission[g] for (yt,ut) in tup_list) for g in model.generator_types)
-   
     
     def FUEL_emission(model,s,yt,ut,g,t): #Emissions from fuel consumption
         return model.FUEL_emission[s,yt,g,t] == model.Generator_Energy_Total[s,yt,g,t]/model.Fuel_LHV[g]/model.Generator_Efficiency[g]*model.FUEL_unit_CO2_emission[g] 
     
-
     def GRID_emission(model,s,yt,ut,t): #Direct emissions from grid electricity consumption
         return model.GRID_emission[s,yt,t] == model.Energy_From_Grid[s,yt,t]/1e3* model.National_Grid_Specific_CO2_emissions
      
@@ -1466,7 +1604,6 @@ class Constraints_Greenfield_Milp():
         return model.Scenario_GRID_emission[s] == sum(sum(model.Energy_From_Grid[s,y,t]*model.National_Grid_Specific_CO2_emissions/1e3 for t in model.periods) for y in model.years) 
     
     "Grid constraints" 
-    
     def Maximum_Power_From_Grid(model,s,yt,ut,t):
         if model.Grid_Availability[s,yt,t] == 0:
             return model.Energy_From_Grid[s,yt,t] == 0
@@ -1491,7 +1628,7 @@ class Constraints_Greenfield_Milp():
 # --- Brownfield ---
     
 class Constraints_Brownfield_Milp():
-    Data_file = "Inputs/Model_data.dat"
+    Data_file = "Inputs/Parameters.dat"
     Data_import = open(Data_file).readlines()
     for i in range(len(Data_import)):
      if "param: Generator_Partial_Load" in Data_import[i]:      
@@ -1505,7 +1642,6 @@ class Constraints_Brownfield_Milp():
     
     def Total_Variable_Cost_Obj(model):
         return (sum(model.Total_Scenario_Variable_Cost_NonAct[s]*model.Scenario_Weight[s] for s in model.scenarios))
-    
     
     "Net Present Cost"
     def Net_Present_Cost(model):   
@@ -1529,8 +1665,12 @@ class Constraints_Brownfield_Milp():
         return model.CO2_emission == (sum(model.Scenario_CO2_emission[s]*model.Scenario_Weight[s] for s in model.scenarios))
     
     def Scenario_CO2_emission(model,s):
-        return model.Scenario_CO2_emission[s] == (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
-    
+        if model.Model_Components == 0:
+            return model.Scenario_CO2_emission[s] == (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 1:
+            return model.Scenario_CO2_emission[s] == (model.RES_emission + model.BESS_emission + model.Scenario_GRID_emission[s])
+        if model.Model_Components == 2:
+            return model.Scenario_CO2_emission[s] == (model.RES_emission + model.GEN_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
     
     "Investment cost"
     def Investment_Cost(model):  
@@ -1559,12 +1699,16 @@ class Constraints_Brownfield_Milp():
                         + sum((((model.Battery_Units[ut] - model.Battery_Units[ut-1])*model.Battery_Nominal_Capacity_milp*model.Battery_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
                         for (yt,ut) in tup_list))
         
-        return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat 
+        if model.Model_Components == 0:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen + Inv_Bat 
+        if model.Model_Components == 1:
+            return model.Investment_Cost == Inv_Ren + Inv_Bat 
+        if model.Model_Components == 2:
+            return model.Investment_Cost == Inv_Ren + Inv_Gen 
     
     def Investment_Cost_Limit(model):
         return model.Investment_Cost <= model.Investment_Cost_Limit
        
-    
     "Fixed O&M costs"
     def Operation_Maintenance_Cost_Act(model):
         OyM_Ren = sum(sum(((model.RES_Units_milp[ut,r]*model.RES_Nominal_Capacity[r])*model.RES_Specific_Investment_Cost[r]*model.RES_Specific_OM_Cost[r])/((
@@ -1573,8 +1717,13 @@ class Constraints_Brownfield_Milp():
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)/((
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
-        return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
-    
+        
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen  
     
     def Operation_Maintenance_Cost_NonAct(model):
         OyM_Ren = sum(sum(((model.RES_Units_milp[ut,r]*model.RES_Nominal_Capacity[r])*model.RES_Specific_Investment_Cost[r]*model.RES_Specific_OM_Cost[r])
@@ -1583,8 +1732,13 @@ class Constraints_Brownfield_Milp():
                         for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)
                         for (yt,ut) in model.years_steps)
-        return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
-    
+        
+        if model.Model_Components == 0:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
+        if model.Model_Components == 1:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Bat 
+        if model.Model_Components == 2:
+            return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen 
     
     "Variable costs"
     def Total_Variable_Cost_Act(model):
@@ -1596,7 +1750,13 @@ class Constraints_Brownfield_Milp():
                 foo.append((s,g))   
         Fuel_Cost = sum(model.Total_Fuel_Cost_Act[s,g] for s,g in foo)    
         Electricity_Cost = model.Total_Electricity_Cost_Act[s]     
-        return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_Act[s]     
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_Act[s]     
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Electricity_Cost - model.Total_Revenues_Act[s]     
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_Act[s]     
     
     def Scenario_Variable_Cost_NonAct(model, s):
         foo = []
@@ -1604,7 +1764,13 @@ class Constraints_Brownfield_Milp():
                 foo.append((s,g))   
         Fuel_Cost = sum(model.Total_Fuel_Cost_NonAct[s,g] for s,g in foo)    
         Electricity_Cost = model.Total_Electricity_Cost_NonAct[s]     
-        return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost- model.Total_Revenues_NonAct[s] 
+        
+        if model.Model_Components == 0:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_NonAct[s] 
+        if model.Model_Components == 1:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Electricity_Cost - model.Total_Revenues_NonAct[s] 
+        if model.Model_Components == 2:
+            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - model.Total_Revenues_NonAct[s] 
     
     def Scenario_Lost_Load_Cost_Act(model,s):    
         Cost_Lost_Load = 0         
@@ -1625,28 +1791,28 @@ class Constraints_Brownfield_Milp():
      def Total_Fuel_Cost_Act(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g])+(model.Generator_Marginal_Cost_milp[g]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g])) for t in model.periods)
+            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g,y])+(model.Generator_Marginal_Cost_milp[g,y]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g,y])) for t in model.periods)
             Fuel_Cost_Tot += Num/((1+model.Discount_Rate)**y)
         return model.Total_Fuel_Cost_Act[s,g] == Fuel_Cost_Tot
        
      def Total_Fuel_Cost_NonAct(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g])+(model.Generator_Marginal_Cost_milp[g]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g])) for t in model.periods)
+            Num = sum(((model.Generator_Full[s,y,g,t]*model.Generator_Nominal_Capacity_milp[g]*model.Generator_Marginal_Cost[g,y])+(model.Generator_Marginal_Cost_milp[g,y]*model.Generator_Energy_Partial[s,y,g,t])+(model.Generator_Partial[s,y,g,t]*model.Generator_Start_Cost[g,y])) for t in model.periods)
             Fuel_Cost_Tot += Num
         return model.Total_Fuel_Cost_NonAct[s,g] == Fuel_Cost_Tot
     else:
      def Total_Fuel_Cost_Act(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num/((1+model.Discount_Rate)**y)
         return model.Total_Fuel_Cost_Act[s,g] == Fuel_Cost_Tot
        
      def Total_Fuel_Cost_NonAct(model,s,g):
         Fuel_Cost_Tot = 0
         for y in range(1, model.Years +1):
-            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g] for t in model.periods)
+            Num = sum(model.Generator_Energy_Total[s,y,g,t]*model.Generator_Marginal_Cost[g,y] for t in model.periods)
             Fuel_Cost_Tot += Num
         return model.Total_Fuel_Cost_NonAct[s,g] == Fuel_Cost_Tot
    
@@ -1663,7 +1829,6 @@ class Constraints_Brownfield_Milp():
             Num = sum(model.Energy_From_Grid[s,y,t]*model.Grid_Availability[s,y,t]*model.Grid_Purchased_El_Price/1000  for t in model.periods)
             Electricity_Cost_Tot += Num
         return model.Total_Electricity_Cost_NonAct[s] == Electricity_Cost_Tot
-    
     
     def Total_Revenues_NonAct(model,s): 
         Revenues_Yearly = [0 for y in model.years]
@@ -1696,7 +1861,6 @@ class Constraints_Brownfield_Milp():
             Battery_cost_out[y-1] = sum(model.Battery_Outflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
             Battery_Yearly_cost[y-1] = Battery_cost_in[y-1] + Battery_cost_out[y-1]
         return model.Battery_Replacement_Cost_NonAct[s] == sum(Battery_Yearly_cost[y-1] for y in model.years) 
-    
     
     "Salvage Value"
     def Salvage_Value(model):   
@@ -1768,8 +1932,10 @@ class Constraints_Brownfield_Milp():
                             ((1+model.Discount_Rate)**model.Years) for (yt,ut) in tup_list_2) for g in model.generator_types)
             SV_Grid = model.Grid_Distance*model.Grid_Connection_Cost*model.Grid_Connection / ((1 + model.Discount_Rate)**(model.Years)) 
        
-        return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid
-    
+        if model.Model_Components == 0 or model.Model_Components == 2:
+           return model.Salvage_Value ==  SV_Ren_1 + SV_Gen_1 + SV_Ren_2 + SV_Gen_2 + SV_Ren_3 + SV_Gen_3 + SV_Grid
+        if model.Model_Components == 1:
+           return model.Salvage_Value ==  SV_Ren_1 + SV_Ren_2 + SV_Ren_3 + SV_Grid
     
     #%% Electricity balance constraints
     def BESS_Capacity(model,ut): #Minimum battery capacity 
@@ -1792,15 +1958,31 @@ class Constraints_Brownfield_Milp():
         Total_Generator_Energy = sum(model.Generator_Energy_Total[i] for i in foo)  
         En_From_Grid = model.Energy_From_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
         En_To_Grid = model.Energy_To_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
-        return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
-                                               + Total_Generator_Energy
-                                               + En_From_Grid
-                                               - En_To_Grid 
-                                               - model.Battery_Inflow[s,yt,t] 
-                                               + model.Battery_Outflow[s,yt,t] 
-                                               + model.Lost_Load[s,yt,t]  
-                                               - model.Energy_Curtailment[s,yt,t] )     
-    
+        
+        if model.Model_Components == 0:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Battery_Outflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        if model.Model_Components == 1:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   - model.Battery_Inflow[s,yt,t] 
+                                                   + model.Battery_Outflow[s,yt,t] 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
+        if model.Model_Components == 2:
+            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
+                                                   + Total_Generator_Energy
+                                                   + En_From_Grid
+                                                   - En_To_Grid 
+                                                   + model.Lost_Load[s,yt,t]  
+                                                   - model.Energy_Curtailment[s,yt,t] )     
     
     "Renewable Energy Sources constraints"
     def Renewable_Energy(model,s,yt,ut,r,t): # Energy output of the solar panels
@@ -1849,7 +2031,6 @@ class Constraints_Brownfield_Milp():
             return model.RES_Units_milp[ut,r] >= model.RES_Units_milp[ut-1,r]
         elif ut == 1:
             return model.RES_Units_milp[ut,r] == model.RES_Units_milp[ut,r]
-    
     
     "Battery Energy Storage constraints"
     def State_of_Charge(model,s,yt,ut,t): # State of Charge of the battery
@@ -1919,7 +2100,6 @@ class Constraints_Brownfield_Milp():
         elif ut ==1:
             return model.Generator_Units[ut,g] == model.Generator_Units[ut,g]
 
-    
     "Lost load constraints"
     def Maximun_Lost_Load(model,s,yt): # Maximum admittable lost load
         return model.Lost_Load_Fraction >= (sum(model.Lost_Load[s,yt,t] for t in model.periods)/sum(model.Energy_Demand[s,yt,t] for t in model.periods))
@@ -2010,9 +2190,6 @@ class Constraints_Brownfield_Milp():
         
     def Single_Flow_Energy_From_Grid(model,s,yt,ut,t):
         return model.Energy_From_Grid[s,yt,t] <= (1-model.Single_Flow_Grid[s,yt,t])*model.Large_Constant   
-    
-
-
 
 
 

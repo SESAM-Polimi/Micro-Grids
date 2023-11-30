@@ -23,9 +23,9 @@ from matplotlib import pyplot
 import re
 
 #%%
-def DispatchPlot(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat):
+def DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat):
     
-    Data_file = "Inputs/Model_data.dat"
+    Data_file = "Inputs/Parameters.dat"
     Data_import = open(Data_file).readlines()
 
     for i in range(len(Data_import)):
@@ -61,7 +61,7 @@ def DispatchPlot(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResoluti
     
     # PlotDate_text = str(pd.to_datetime(PlotDate).day) + '/' + str(pd.to_datetime(PlotDate).month) + '/' + str(pd.to_datetime(PlotDate).year)
     
-    Series = TimeSeries[PlotScenario][PlotYear].copy()
+    Series = Time_Series[PlotScenario][PlotYear].copy()
 
     #%% Generating years-steps tuples list
     steps = [i for i in range(1, ST+1)]
@@ -100,45 +100,52 @@ def DispatchPlot(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResoluti
     y_RES = {}
     for r in range(1,R+1):
         y_RES[r]  = Series.loc[:,idx[:,'RES Production',RES_Names[r],:]].values.flatten()/1e3 
-    y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
-    y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
-    y_Genset = {}
-    for g in range(1,G+1):
-        y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
+        y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        y_Genset = {}
+        for g in range(1,G+1):
+            y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
     y_LostLoad    = Series.loc[:,idx[:,'Lost Load',:,:]].values.flatten()/1e3 
     y_Curtailment = -1*Series.loc[:,idx[:,'Curtailment',:,:]].values.flatten()/1e3 
-    y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
-    y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
+    if instance.Grid_Connection.value == 1:
+        y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
+        y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
 
-    x_Plot = np.arange(len(y_BESS_out))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        # x_Plot = np.arange(len(y_BESS_out))
+        deltaBESS_pos = y_BESS_out + y_BESS_in
+        deltaBESS_neg = y_BESS_out + y_BESS_in
     
-    deltaBESS_pos = y_BESS_out + y_BESS_in
-    deltaBESS_neg = y_BESS_out + y_BESS_in
-    
-    for i in range(deltaBESS_pos.shape[0]):
-        if deltaBESS_pos[i] < 0:   
-            deltaBESS_pos[i] *= 0
-        if deltaBESS_neg[i] > 0:   
-            deltaBESS_neg[i] *= 0
+        for i in range(deltaBESS_pos.shape[0]):
+            if deltaBESS_pos[i] < 0:   
+                deltaBESS_pos[i] *= 0
+            if deltaBESS_neg[i] > 0:   
+                deltaBESS_neg[i] *= 0
     
     y_Stacked_pos = []
     for r in range(1,R+1):
         y_Stacked_pos += [y_RES[r]]
-    y_Stacked_pos += [deltaBESS_pos]  
-    for g in range(1,G+1):
-        y_Stacked_pos += [y_Genset[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_Stacked_pos += [deltaBESS_pos]  
+        y_Stacked_neg = [deltaBESS_neg]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+            y_Stacked_pos += [y_Genset[g]]
     y_Stacked_pos += [y_LostLoad]  
     y_Stacked_pos += [y_Curtailment]  
-    y_Stacked_pos += [y_Grid_out]
-    y_Stacked_pos += [y_Grid_in]
-                         
-    y_Stacked_neg = [deltaBESS_neg]
+    if instance.Grid_Connection.value == 1:
+        y_Stacked_pos += [y_Grid_out]
+        y_Stacked_pos += [y_Grid_in]
     
     y_Demand   = Series.loc[:,idx[:,'Electric Demand',:,:]].values.flatten()/1e3
-    if MILP_Formulation:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
-    else:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
+    x_Plot = np.arange(len(y_Demand))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation:
+            y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
+        else:
+            y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
 
 
     #%% Plotting
@@ -161,27 +168,29 @@ def DispatchPlot(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResoluti
     Colors_pos += ['#'+Energy_to_grid_Color] 
     Colors_pos += ['#'+Energy_from_grid_Color] 
     
-   
     Colors_neg = ['#'+BESS_Color,]
 
     Labels_pos = []
     for r in range(1,R+1):
          Labels_pos += [RES_Names[r]]
-    Labels_pos += ['Battery']  
-    for g in range(1,G+1):
-         Labels_pos += [Generator_Names[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        Labels_pos += ['Battery']  
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+             Labels_pos += [Generator_Names[g]]
     Labels_pos += ['Lost load']  
     Labels_pos += ['Curtailment'] 
-    Labels_pos += ['Energy to grid']  
-    Labels_pos += ['Energy from grid'] 
+    if instance.Grid_Connection.value == 1:
+        Labels_pos += ['Energy to grid']  
+        Labels_pos += ['Energy from grid'] 
       
     Labels_neg = ['_nolegend_'] 
-
 
     fig,ax1 = plt.subplots(nrows=1,ncols=1,figsize = (12,8))
 
     ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)
-    ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:            
+        ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
     ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
     ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
  
@@ -207,28 +216,29 @@ def DispatchPlot(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResoluti
     ax1.grid(True, zorder=2) ####
        
     "secondary y axis"
-    if MILP_Formulation:
-     if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0)
-    else:
-     if BESSNominalCapacity[PlotStep] >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0) 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation: 
+         if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0)
+        else:
+         if BESSNominalCapacity[PlotStep] >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0) 
 
     # ax1.text((ax1.get_xticks()[0] + ax1.get_xticks()[1])/4 ,ax1.get_yticks()[-2], 'Plot start at\n'+PlotDate, fontsize=fontlegend)
 
@@ -237,7 +247,7 @@ def DispatchPlot(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResoluti
     
     fig.savefig('Results/Plots/DispatchPlot.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
 #%%
-def DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotResolution1,PlotFormat1):
+def DispatchPlot1(instance,Time_Series,PlotScenario1,PlotDate1,PlotTime1,PlotResolution1,PlotFormat1):
     
     Data_file = "Inputs/Model_data.dat"
     Data_import = open(Data_file).readlines()
@@ -271,11 +281,12 @@ def DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotReso
     else:
        BESSNominalCapacity = instance.Battery_Nominal_Capacity.get_values()
     
-    PlotYear  = pd.to_datetime(PlotDate).year - pd.to_datetime(instance.StartDate()).year +1
+    PlotYear  = pd.to_datetime(PlotDate1).year - pd.to_datetime(instance.StartDate()).year +1
     
     # PlotDate_text = str(pd.to_datetime(PlotDate).day) + '/' + str(pd.to_datetime(PlotDate).month) + '/' + str(pd.to_datetime(PlotDate).year)
     
-    Series = TimeSeries[PlotScenario][PlotYear].copy()
+    Series = Time_Series[PlotScenario1][PlotYear].copy()
+
 
     #%% Generating years-steps tuples list
     steps = [i for i in range(1, ST+1)]
@@ -301,59 +312,65 @@ def DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotReso
     
     #%% Series preparation
     pDay = 24/instance.Delta_Time()                       # Periods in a day
-    foo = pd.date_range(start=PlotDate,periods=1,freq='1h')      # Assign the start date of the graphic to a dumb variable
+    foo = pd.date_range(start=PlotDate1,periods=1,freq='1h')      # Assign the start date of the graphic to a dumb variable
     for x in range(0, instance.Periods()):                       # Find the position from which the plot will start in the Time_Series dataframe
         if foo == Series.index[x]: 
            Start_Plot = x                                        # assign the value of x to the position where the plot will start 
            break
-    End_Plot     = Start_Plot + PlotTime*pDay # Create the end of the plot position inside the time_series
+    End_Plot     = Start_Plot + PlotTime1*pDay # Create the end of the plot position inside the time_series
     Series.index = range(1,(len(Series)+1))
     Series       = Series[Start_Plot:int(End_Plot)] # Extract the data between the start and end position from the Time_Series
-    Series.index = pd.date_range(start=PlotDate, periods=PlotTime*pDay, freq=('1h')) 
+    Series.index = pd.date_range(start=PlotDate1, periods=PlotTime1*pDay, freq=('1h')) 
    
     y_RES = {}
     for r in range(1,R+1):
         y_RES[r]  = Series.loc[:,idx[:,'RES Production',RES_Names[r],:]].values.flatten()/1e3 
-    y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
-    y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
-    y_Genset = {}
-    for g in range(1,G+1):
-        y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
+        y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        y_Genset = {}
+        for g in range(1,G+1):
+            y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
     y_LostLoad    = Series.loc[:,idx[:,'Lost Load',:,:]].values.flatten()/1e3 
     y_Curtailment = -1*Series.loc[:,idx[:,'Curtailment',:,:]].values.flatten()/1e3 
-    y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
-    y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
+    if instance.Grid_Connection.value == 1: 
+        y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
+        y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
 
-    x_Plot = np.arange(len(y_BESS_out))
+    # x_Plot = np.arange(len(y_BESS_out))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        deltaBESS_pos = y_BESS_out + y_BESS_in
+        deltaBESS_neg = y_BESS_out + y_BESS_in
     
-    deltaBESS_pos = y_BESS_out + y_BESS_in
-    deltaBESS_neg = y_BESS_out + y_BESS_in
-    
-    for i in range(deltaBESS_pos.shape[0]):
-        if deltaBESS_pos[i] < 0:   
-            deltaBESS_pos[i] *= 0
-        if deltaBESS_neg[i] > 0:   
-            deltaBESS_neg[i] *= 0
+        for i in range(deltaBESS_pos.shape[0]):
+            if deltaBESS_pos[i] < 0:   
+                deltaBESS_pos[i] *= 0
+            if deltaBESS_neg[i] > 0:   
+                deltaBESS_neg[i] *= 0
     
     y_Stacked_pos = []
     for r in range(1,R+1):
         y_Stacked_pos += [y_RES[r]]
-    y_Stacked_pos += [deltaBESS_pos]  
-    for g in range(1,G+1):
-        y_Stacked_pos += [y_Genset[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_Stacked_pos += [deltaBESS_pos]  
+        y_Stacked_neg = [deltaBESS_neg]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+            y_Stacked_pos += [y_Genset[g]]
     y_Stacked_pos += [y_LostLoad]  
     y_Stacked_pos += [y_Curtailment]  
-    y_Stacked_pos += [y_Grid_out]
-    y_Stacked_pos += [y_Grid_in]
-                         
-    y_Stacked_neg = [deltaBESS_neg]
-    
+    if instance.Grid_Connection.value == 1: 
+        y_Stacked_pos += [y_Grid_out]
+        y_Stacked_pos += [y_Grid_in]
+                             
     y_Demand   = Series.loc[:,idx[:,'Electric Demand',:,:]].values.flatten()/1e3
-    if MILP_Formulation:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
-    else:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
-
+    x_Plot = np.arange(len(y_Demand))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation:
+           y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
+        else:
+           y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
 
     #%% Plotting
     RES_Colors  = instance.RES_Colors.extract_values()
@@ -374,20 +391,22 @@ def DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotReso
     Colors_pos += ['#'+Curtailment_Color]  
     Colors_pos += ['#'+Energy_to_grid_Color] 
     Colors_pos += ['#'+Energy_from_grid_Color] 
-    
    
     Colors_neg = ['#'+BESS_Color,]
 
     Labels_pos = []
     for r in range(1,R+1):
          Labels_pos += [RES_Names[r]]
-    Labels_pos += ['Battery']  
-    for g in range(1,G+1):
-         Labels_pos += [Generator_Names[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        Labels_pos += ['Battery']  
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+             Labels_pos += [Generator_Names[g]]
     Labels_pos += ['Lost load']  
     Labels_pos += ['Curtailment'] 
-    Labels_pos += ['Energy to grid']  
-    Labels_pos += ['Energy from grid'] 
+    if instance.Grid_Connection.value == 1: 
+        Labels_pos += ['Energy to grid']  
+        Labels_pos += ['Energy from grid'] 
       
     Labels_neg = ['_nolegend_'] 
 
@@ -395,7 +414,8 @@ def DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotReso
     fig,ax1 = plt.subplots(nrows=1,ncols=1,figsize = (12,8))
 
     ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)
-    ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
     ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
     ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
  
@@ -405,9 +425,9 @@ def DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotReso
     "x axis"
     xticks_position = [0]
     ticks = []
-    for i in range(1,PlotTime+1):
-        ticks = [d*6 for d in range(PlotTime*4+1)]
-        xticks_position += [d*6-1 for d in range(1,PlotTime*4+1)]
+    for i in range(1,PlotTime1+1):
+        ticks = [d*6 for d in range(PlotTime1*4+1)]
+        xticks_position += [d*6-1 for d in range(1,PlotTime1*4+1)]
             
     ax1.set_xticks(xticks_position)
     # ax1.set_xticklabels(ticks, fontsize=fontticks)
@@ -421,38 +441,39 @@ def DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotReso
     ax1.grid(True, zorder=2) ####
        
     "secondary y axis"
-    if MILP_Formulation:
-     if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0)
-    else:
-     if BESSNominalCapacity[PlotStep] >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0) 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation:
+         if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0)
+        else:
+         if BESSNominalCapacity[PlotStep] >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0) 
 
     # ax1.text((ax1.get_xticks()[0] + ax1.get_xticks()[1])/4 ,ax1.get_yticks()[-2], 'Plot start at\n'+PlotDate, fontsize=fontlegend)
 
     fig.legend(bbox_to_anchor=(1.19,0.98), ncol=1, fontsize=fontlegend, frameon=True)
     fig.tight_layout()    
     
-    fig.savefig('Results/Plots/DispatchPlot.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
+    fig.savefig('Results/Plots/DispatchPlot1.'+PlotFormat1, dpi=PlotResolution1, bbox_inches='tight')
 
 #%%
-def DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotResolution2,PlotFormat2):
+def DispatchPlot2(instance,Time_Series,PlotScenario2,PlotDate2,PlotTime2,PlotResolution2,PlotFormat2):
     
     Data_file = "Inputs/Model_data.dat"
     Data_import = open(Data_file).readlines()
@@ -486,11 +507,11 @@ def DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotReso
     else:
        BESSNominalCapacity = instance.Battery_Nominal_Capacity.get_values()
     
-    PlotYear  = pd.to_datetime(PlotDate).year - pd.to_datetime(instance.StartDate()).year +1
+    PlotYear  = pd.to_datetime(PlotDate2).year - pd.to_datetime(instance.StartDate()).year +1
     
     # PlotDate_text = str(pd.to_datetime(PlotDate).day) + '/' + str(pd.to_datetime(PlotDate).month) + '/' + str(pd.to_datetime(PlotDate).year)
     
-    Series = TimeSeries[PlotScenario][PlotYear].copy()
+    Series = Time_Series[PlotScenario2][PlotYear].copy()
 
     #%% Generating years-steps tuples list
     steps = [i for i in range(1, ST+1)]
@@ -516,58 +537,66 @@ def DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotReso
     
     #%% Series preparation
     pDay = 24/instance.Delta_Time()                       # Periods in a day
-    foo = pd.date_range(start=PlotDate,periods=1,freq='1h')      # Assign the start date of the graphic to a dumb variable
+    foo = pd.date_range(start=PlotDate2,periods=1,freq='1h')      # Assign the start date of the graphic to a dumb variable
     for x in range(0, instance.Periods()):                       # Find the position from which the plot will start in the Time_Series dataframe
         if foo == Series.index[x]: 
            Start_Plot = x                                        # assign the value of x to the position where the plot will start 
            break
-    End_Plot     = Start_Plot + PlotTime*pDay # Create the end of the plot position inside the time_series
+    End_Plot     = Start_Plot + PlotTime2*pDay # Create the end of the plot position inside the time_series
     Series.index = range(1,(len(Series)+1))
     Series       = Series[Start_Plot:int(End_Plot)] # Extract the data between the start and end position from the Time_Series
-    Series.index = pd.date_range(start=PlotDate, periods=PlotTime*pDay, freq=('1h')) 
+    Series.index = pd.date_range(start=PlotDate2, periods=PlotTime2*pDay, freq=('1h')) 
    
     y_RES = {}
     for r in range(1,R+1):
         y_RES[r]  = Series.loc[:,idx[:,'RES Production',RES_Names[r],:]].values.flatten()/1e3 
-    y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
-    y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
-    y_Genset = {}
-    for g in range(1,G+1):
-        y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
+        y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        y_Genset = {}
+        for g in range(1,G+1):
+            y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
     y_LostLoad    = Series.loc[:,idx[:,'Lost Load',:,:]].values.flatten()/1e3 
     y_Curtailment = -1*Series.loc[:,idx[:,'Curtailment',:,:]].values.flatten()/1e3 
-    y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
-    y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
+    if instance.Grid_Connection.value == 1:
+        y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
+        y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
 
-    x_Plot = np.arange(len(y_BESS_out))
+    # x_Plot = np.arange(len(y_BESS_out))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        deltaBESS_pos = y_BESS_out + y_BESS_in
+        deltaBESS_neg = y_BESS_out + y_BESS_in
     
-    deltaBESS_pos = y_BESS_out + y_BESS_in
-    deltaBESS_neg = y_BESS_out + y_BESS_in
-    
-    for i in range(deltaBESS_pos.shape[0]):
-        if deltaBESS_pos[i] < 0:   
-            deltaBESS_pos[i] *= 0
-        if deltaBESS_neg[i] > 0:   
-            deltaBESS_neg[i] *= 0
+        for i in range(deltaBESS_pos.shape[0]):
+            if deltaBESS_pos[i] < 0:   
+                deltaBESS_pos[i] *= 0
+            if deltaBESS_neg[i] > 0:   
+                deltaBESS_neg[i] *= 0
     
     y_Stacked_pos = []
     for r in range(1,R+1):
         y_Stacked_pos += [y_RES[r]]
-    y_Stacked_pos += [deltaBESS_pos]  
-    for g in range(1,G+1):
-        y_Stacked_pos += [y_Genset[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_Stacked_pos += [deltaBESS_pos]  
+        y_Stacked_neg = [deltaBESS_neg]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+            y_Stacked_pos += [y_Genset[g]]
     y_Stacked_pos += [y_LostLoad]  
     y_Stacked_pos += [y_Curtailment]  
-    y_Stacked_pos += [y_Grid_out]
-    y_Stacked_pos += [y_Grid_in]
+    if instance.Grid_Connection.value == 1:
+        y_Stacked_pos += [y_Grid_out]
+        y_Stacked_pos += [y_Grid_in]
                          
-    y_Stacked_neg = [deltaBESS_neg]
-    
+   
     y_Demand   = Series.loc[:,idx[:,'Electric Demand',:,:]].values.flatten()/1e3
-    if MILP_Formulation:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
-    else:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
+    x_Plot = np.arange(len(y_Demand))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation:
+           y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
+        else:
+           y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
 
 
     #%% Plotting
@@ -590,27 +619,29 @@ def DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotReso
     Colors_pos += ['#'+Energy_to_grid_Color] 
     Colors_pos += ['#'+Energy_from_grid_Color] 
     
-   
     Colors_neg = ['#'+BESS_Color,]
 
     Labels_pos = []
     for r in range(1,R+1):
          Labels_pos += [RES_Names[r]]
-    Labels_pos += ['Battery']  
-    for g in range(1,G+1):
-         Labels_pos += [Generator_Names[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        Labels_pos += ['Battery']  
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+             Labels_pos += [Generator_Names[g]]
     Labels_pos += ['Lost load']  
     Labels_pos += ['Curtailment'] 
-    Labels_pos += ['Energy to grid']  
-    Labels_pos += ['Energy from grid'] 
+    if instance.Grid_Connection.value == 1:
+        Labels_pos += ['Energy to grid']  
+        Labels_pos += ['Energy from grid'] 
       
     Labels_neg = ['_nolegend_'] 
-
 
     fig,ax1 = plt.subplots(nrows=1,ncols=1,figsize = (12,8))
 
     ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)
-    ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
     ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
     ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
  
@@ -620,9 +651,9 @@ def DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotReso
     "x axis"
     xticks_position = [0]
     ticks = []
-    for i in range(1,PlotTime+1):
-        ticks = [d*6 for d in range(PlotTime*4+1)]
-        xticks_position += [d*6-1 for d in range(1,PlotTime*4+1)]
+    for i in range(1,PlotTime2+1):
+        ticks = [d*6 for d in range(PlotTime2*4+1)]
+        xticks_position += [d*6-1 for d in range(1,PlotTime2*4+1)]
             
     ax1.set_xticks(xticks_position)
     # ax1.set_xticklabels(ticks, fontsize=fontticks)
@@ -636,38 +667,39 @@ def DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotReso
     ax1.grid(True, zorder=2) ####
        
     "secondary y axis"
-    if MILP_Formulation:
-     if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0)
-    else:
-     if BESSNominalCapacity[PlotStep] >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0) 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation:
+         if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0)
+        else:
+         if BESSNominalCapacity[PlotStep] >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0) 
 
     # ax1.text((ax1.get_xticks()[0] + ax1.get_xticks()[1])/4 ,ax1.get_yticks()[-2], 'Plot start at\n'+PlotDate, fontsize=fontlegend)
 
     fig.legend(bbox_to_anchor=(1.19,0.98), ncol=1, fontsize=fontlegend, frameon=True)
     fig.tight_layout()    
     
-    fig.savefig('Results/Plots/DispatchPlot.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
+    fig.savefig('Results/Plots/DispatchPlot2.'+PlotFormat2, dpi=PlotResolution2, bbox_inches='tight')
 
 #%%
-def DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotResolution3,PlotFormat3):
+def DispatchPlot3(instance,Time_Series,PlotScenario3,PlotDate3,PlotTime3,PlotResolution3,PlotFormat3):
     
     Data_file = "Inputs/Model_data.dat"
     Data_import = open(Data_file).readlines()
@@ -701,11 +733,11 @@ def DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotReso
     else:
        BESSNominalCapacity = instance.Battery_Nominal_Capacity.get_values()
     
-    PlotYear  = pd.to_datetime(PlotDate).year - pd.to_datetime(instance.StartDate()).year +1
+    PlotYear  = pd.to_datetime(PlotDate3).year - pd.to_datetime(instance.StartDate()).year +1
     
     # PlotDate_text = str(pd.to_datetime(PlotDate).day) + '/' + str(pd.to_datetime(PlotDate).month) + '/' + str(pd.to_datetime(PlotDate).year)
     
-    Series = TimeSeries[PlotScenario][PlotYear].copy()
+    Series = Time_Series[PlotScenario3][PlotYear].copy()
 
     #%% Generating years-steps tuples list
     steps = [i for i in range(1, ST+1)]
@@ -731,58 +763,65 @@ def DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotReso
     
     #%% Series preparation
     pDay = 24/instance.Delta_Time()                       # Periods in a day
-    foo = pd.date_range(start=PlotDate,periods=1,freq='1h')      # Assign the start date of the graphic to a dumb variable
+    foo = pd.date_range(start=PlotDate3,periods=1,freq='1h')      # Assign the start date of the graphic to a dumb variable
     for x in range(0, instance.Periods()):                       # Find the position from which the plot will start in the Time_Series dataframe
         if foo == Series.index[x]: 
            Start_Plot = x                                        # assign the value of x to the position where the plot will start 
            break
-    End_Plot     = Start_Plot + PlotTime*pDay # Create the end of the plot position inside the time_series
+    End_Plot     = Start_Plot + PlotTime3*pDay # Create the end of the plot position inside the time_series
     Series.index = range(1,(len(Series)+1))
     Series       = Series[Start_Plot:int(End_Plot)] # Extract the data between the start and end position from the Time_Series
-    Series.index = pd.date_range(start=PlotDate, periods=PlotTime*pDay, freq=('1h')) 
+    Series.index = pd.date_range(start=PlotDate3, periods=PlotTime3*pDay, freq=('1h')) 
    
     y_RES = {}
     for r in range(1,R+1):
         y_RES[r]  = Series.loc[:,idx[:,'RES Production',RES_Names[r],:]].values.flatten()/1e3 
-    y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
-    y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
-    y_Genset = {}
-    for g in range(1,G+1):
-        y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_BESS_out    = Series.loc[:,idx[:,'Battery Discharge',:,:]].values.flatten()/1e3 
+        y_BESS_in     = -1*Series.loc[:,idx[:,'Battery Charge',:,:]].values.flatten()/1e3 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        y_Genset = {}
+        for g in range(1,G+1):
+            y_Genset[g] = Series.loc[:,idx[:,'Generator Production',Generator_Names[g],:]].values.flatten()/1e3 
     y_LostLoad    = Series.loc[:,idx[:,'Lost Load',:,:]].values.flatten()/1e3 
     y_Curtailment = -1*Series.loc[:,idx[:,'Curtailment',:,:]].values.flatten()/1e3 
-    y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
-    y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
+    if instance.Grid_Connection.value == 1:
+        y_Grid_out   = -1*Series.loc[:,idx[:,'Electricity to grid',:,:]].values.flatten()/1e3  ####
+        y_Grid_in    = Series.loc[:,idx[:,'Electricity from grid',:,:]].values.flatten()/1e3  ####
 
-    x_Plot = np.arange(len(y_BESS_out))
+    # x_Plot = np.arange(len(y_BESS_out))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        deltaBESS_pos = y_BESS_out + y_BESS_in
+        deltaBESS_neg = y_BESS_out + y_BESS_in
     
-    deltaBESS_pos = y_BESS_out + y_BESS_in
-    deltaBESS_neg = y_BESS_out + y_BESS_in
-    
-    for i in range(deltaBESS_pos.shape[0]):
-        if deltaBESS_pos[i] < 0:   
-            deltaBESS_pos[i] *= 0
-        if deltaBESS_neg[i] > 0:   
-            deltaBESS_neg[i] *= 0
+        for i in range(deltaBESS_pos.shape[0]):
+            if deltaBESS_pos[i] < 0:   
+                deltaBESS_pos[i] *= 0
+            if deltaBESS_neg[i] > 0:   
+                deltaBESS_neg[i] *= 0
     
     y_Stacked_pos = []
     for r in range(1,R+1):
         y_Stacked_pos += [y_RES[r]]
-    y_Stacked_pos += [deltaBESS_pos]  
-    for g in range(1,G+1):
-        y_Stacked_pos += [y_Genset[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        y_Stacked_pos += [deltaBESS_pos]
+        y_Stacked_neg = [deltaBESS_neg]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+            y_Stacked_pos += [y_Genset[g]]
     y_Stacked_pos += [y_LostLoad]  
     y_Stacked_pos += [y_Curtailment]  
-    y_Stacked_pos += [y_Grid_out]
-    y_Stacked_pos += [y_Grid_in]
-                         
-    y_Stacked_neg = [deltaBESS_neg]
+    if instance.Grid_Connection.value == 1:
+        y_Stacked_pos += [y_Grid_out]
+        y_Stacked_pos += [y_Grid_in]
     
     y_Demand   = Series.loc[:,idx[:,'Electric Demand',:,:]].values.flatten()/1e3
-    if MILP_Formulation:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
-    else:
-       y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
+    x_Plot = np.arange(len(y_Demand))
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation:
+           y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/(BESSUnits[PlotStep]*BESSNominalCapacitymilp)*100
+        else:
+           y_BESS_SOC = Series.loc[:,idx[:,'Battery SOC',:,:]].values.flatten()/BESSNominalCapacity[PlotStep]*100
 
 
     #%% Plotting
@@ -804,28 +843,30 @@ def DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotReso
     Colors_pos += ['#'+Curtailment_Color]  
     Colors_pos += ['#'+Energy_to_grid_Color] 
     Colors_pos += ['#'+Energy_from_grid_Color] 
-    
    
     Colors_neg = ['#'+BESS_Color,]
 
     Labels_pos = []
     for r in range(1,R+1):
          Labels_pos += [RES_Names[r]]
-    Labels_pos += ['Battery']  
-    for g in range(1,G+1):
-         Labels_pos += [Generator_Names[g]]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        Labels_pos += ['Battery']  
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+             Labels_pos += [Generator_Names[g]]
     Labels_pos += ['Lost load']  
     Labels_pos += ['Curtailment'] 
-    Labels_pos += ['Energy to grid']  
-    Labels_pos += ['Energy from grid'] 
+    if instance.Grid_Connection.value == 1:
+        Labels_pos += ['Energy to grid']  
+        Labels_pos += ['Energy from grid'] 
       
     Labels_neg = ['_nolegend_'] 
-
 
     fig,ax1 = plt.subplots(nrows=1,ncols=1,figsize = (12,8))
 
     ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)
-    ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
     ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
     ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
  
@@ -835,9 +876,9 @@ def DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotReso
     "x axis"
     xticks_position = [0]
     ticks = []
-    for i in range(1,PlotTime+1):
-        ticks = [d*6 for d in range(PlotTime*4+1)]
-        xticks_position += [d*6-1 for d in range(1,PlotTime*4+1)]
+    for i in range(1,PlotTime3+1):
+        ticks = [d*6 for d in range(PlotTime3*4+1)]
+        xticks_position += [d*6-1 for d in range(1,PlotTime3*4+1)]
             
     ax1.set_xticks(xticks_position)
     # ax1.set_xticklabels(ticks, fontsize=fontticks)
@@ -851,35 +892,36 @@ def DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotReso
     ax1.grid(True, zorder=2) ####
        
     "secondary y axis"
-    if MILP_Formulation:
-     if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0)
-    else:
-     if BESSNominalCapacity[PlotStep] >= 1:
-        ax2=ax1.twinx()
-        ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
-        ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
-
-        ax2.set_yticks(np.arange(0,100.00000001,20))
-        # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-        ax2.set_ylim(ymin=0)
-        ax2.set_ylim(ymax=100.00000001)
-        ax2.margins(y=0) 
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        if MILP_Formulation:
+         if (BESSUnits[PlotStep]*BESSNominalCapacitymilp) >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0)
+        else:
+         if BESSNominalCapacity[PlotStep] >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_BESS_SOC, '--', color='black', label='Battery state\nof charge', zorder=2)
+            ax2.set_ylabel('Battery state of charge [%]', fontsize=fontaxis)
+    
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0) 
 
     # ax1.text((ax1.get_xticks()[0] + ax1.get_xticks()[1])/4 ,ax1.get_yticks()[-2], 'Plot start at\n'+PlotDate, fontsize=fontlegend)
 
     fig.legend(bbox_to_anchor=(1.19,0.98), ncol=1, fontsize=fontlegend, frameon=True)
     fig.tight_layout()    
     
-    fig.savefig('Results/Plots/DispatchPlot.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
+    fig.savefig('Results/Plots/DispatchPlot3.'+PlotFormat3, dpi=PlotResolution3, bbox_inches='tight')
 #%%
 def CashFlowPlot(instance,Results,PlotResolution,PlotFormat):
 
@@ -930,41 +972,53 @@ def CashFlowPlot(instance,Results,PlotResolution,PlotFormat):
         Investment_Gen[Generator_Names[g]] = [0 for y in range(Y)]
 
     if ST == 1:
-        Investment_BESS[0] = Results['Costs'].loc[idx['Investment cost','Battery bank',:,:],'Total'].values[0]
-        Investment_Grid[0] = Results['Costs'].loc[idx['Investment cost','National grid',:,:],'Total'].values[0]
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+            Investment_BESS[0] = Results['Costs'].loc[idx['Investment cost','Battery bank',:,:],'Total'].values[0]
+        if instance.Grid_Connection.value == 1:
+            Investment_Grid[0] = Results['Costs'].loc[idx['Investment cost','National Grid',:,:],'Total'].values[0]
         for r in range(1,R+1):
             Investment_RES[RES_Names[r]][0] = Results['Costs'].loc[idx['Investment cost',RES_Names[r],:,:],'Total'].values[0]
-        for g in range(1,G+1):
-            Investment_Gen[Generator_Names[g]][0] = Results['Costs'].loc[idx['Investment cost',Generator_Names[g],:,:],'Total'].values[0]
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+            for g in range(1,G+1):
+                Investment_Gen[Generator_Names[g]][0] = Results['Costs'].loc[idx['Investment cost',Generator_Names[g],:,:],'Total'].values[0]
     else:
         for st in range(1,ST+1):
             for y in range(1,Y+1):
                 if y==1:
-                    Investment_BESS[y-1] = Results['Costs'].loc[idx['Investment cost','Battery bank',:,:],'Step 1'].values[0]
-                    Investment_Grid[0] = Results['Costs'].loc[idx['Investment cost','National grid',:,:],'Step 1'].values[0]
+                    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+                        Investment_BESS[y-1] = Results['Costs'].loc[idx['Investment cost','Battery bank',:,:],'Step 1'].values[0]
+                    if instance.Grid_Connection.value == 1:
+                        Investment_Grid[0] = Results['Costs'].loc[idx['Investment cost','National Grid',:,:],'Step 1'].values[0]
                     for r in range(1,R+1):
                         Investment_RES[RES_Names[r]][y-1] = Results['Costs'].loc[idx['Investment cost',RES_Names[r],:,:],'Step 1'].values[0]
-                    for g in range(1,G+1):
-                        Investment_Gen[Generator_Names[g]][y-1] = Results['Costs'].loc[idx['Investment cost',Generator_Names[g],:,:],'Step 1'].values[0]                
+                    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+                        for g in range(1,G+1):
+                            Investment_Gen[Generator_Names[g]][y-1] = Results['Costs'].loc[idx['Investment cost',Generator_Names[g],:,:],'Step 1'].values[0]                
                 if st!=1:
                     if y==tup_list[st-2][0]:
-                        Investment_BESS[y-1] = Results['Costs'].loc[idx['Investment cost','Battery bank',:,:],'Step '+ str(st)].values[0]
-                        Investment_Grid[0] = Results['Costs'].loc[idx['Investment cost','National grid',:,:],'Step '+ str(st)].values[0]
+                        if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+                            Investment_BESS[y-1] = Results['Costs'].loc[idx['Investment cost','Battery bank',:,:],'Step '+ str(st)].values[0]
+                        if instance.Grid_Connection.value == 1:
+                            Investment_Grid[0] = Results['Costs'].loc[idx['Investment cost','National Grid',:,:],'Step '+ str(st)].values[0]
                         for r in range(1,R+1):
                             Investment_RES[RES_Names[r]][y-1] = Results['Costs'].loc[idx['Investment cost',RES_Names[r],:,:],'Step '+str(st)].values[0]
-                        for g in range(1,G+1):
-                            Investment_Gen[Generator_Names[g]][y-1] = Results['Costs'].loc[idx['Investment cost',Generator_Names[g],:,:],'Step '+str(st)].values[0]
+                        if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+                            for g in range(1,G+1):
+                                Investment_Gen[Generator_Names[g]][y-1] = Results['Costs'].loc[idx['Investment cost',Generator_Names[g],:,:],'Step '+str(st)].values[0]
     
 
 #%% Yearly cash flows
-    Fixed_costs_BESS = Results['Yearly cash flows'].loc[:,idx['Fixed costs', 'Battery bank', :, :]].values
-    Fixed_costs_Grid = Results['Yearly cash flows'].loc[:,idx['Fixed costs', 'Grid', :, :]].values
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        Fixed_costs_BESS = Results['Yearly cash flows'].loc[:,idx['Fixed costs', 'Battery bank', :, :]].values
+    if instance.Grid_Connection.value == 1:
+        Fixed_costs_Grid = Results['Yearly cash flows'].loc[:,idx['Fixed costs', 'Grid', :, :]].values
     Fixed_costs_RES = {}
     for r in range(1,R+1):
         Fixed_costs_RES[r] = Results['Yearly cash flows'].loc[:,idx['Fixed costs', RES_Names[r], :, :]].values
-    Fixed_costs_Gen = {}
-    for g in range(1,G+1):
-        Fixed_costs_Gen[g] = Results['Yearly cash flows'].loc[:,idx['Fixed costs', Generator_Names[g], :, :]].values
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        Fixed_costs_Gen = {}
+        for g in range(1,G+1):
+            Fixed_costs_Gen[g] = Results['Yearly cash flows'].loc[:,idx['Fixed costs', Generator_Names[g], :, :]].values
     
     lostloadcost = {}
     bessreplacementcost = {}
@@ -972,30 +1026,35 @@ def CashFlowPlot(instance,Results,PlotResolution,PlotFormat):
     gridcost = {}
     for s in range(1,S+1):
         lostloadcost[s] = Results['Yearly cash flows'].loc[:,idx['Lost load cost', :, s, :]].values 
-        bessreplacementcost[s] = Results['Yearly cash flows'].loc[:,idx['Replacement cost', 'Battery bank', s, :]].values 
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+            bessreplacementcost[s] = Results['Yearly cash flows'].loc[:,idx['Replacement cost', 'Battery bank', s, :]].values 
         fuelcost[s] = {}
-        gridcost[s] = Results['Yearly cash flows'].loc[:,idx['Grid cost', 'Grid', s, :]].values
-        for g in range(1,G+1):
-            fuelcost[s][g] = Results['Yearly cash flows'].loc[:,idx['Fuel cost', Fuel_Names[g], s, :]].values 
+        if instance.Grid_Connection.value == 1:
+            gridcost[s] = Results['Yearly cash flows'].loc[:,idx['Grid cost', 'Grid', s, :]].values
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+            for g in range(1,G+1):
+                fuelcost[s][g] = Results['Yearly cash flows'].loc[:,idx['Fuel cost', Fuel_Names[g], s, :]].values 
     
     Lost_load_cost = np.arange(Y)*0
     BESS_replacement_cost = np.arange(Y)*0
     Grid_Electricity_cost = np.arange(Y)*0
     for s in range(1,S+1):    
         Lost_load_cost = [a+b for (a,b) in zip(Lost_load_cost,lostloadcost[s].T[0])]
-        BESS_replacement_cost = [a+b for (a,b) in zip(BESS_replacement_cost,bessreplacementcost[s].T[0])]
-        Grid_Electricity_cost = [a+b for (a,b) in zip(Grid_Electricity_cost,gridcost[s].T[0])]
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+            BESS_replacement_cost = [a+b for (a,b) in zip(BESS_replacement_cost,bessreplacementcost[s].T[0])]
+        if instance.Grid_Connection.value == 1:
+            Grid_Electricity_cost = [a+b for (a,b) in zip(Grid_Electricity_cost,gridcost[s].T[0])]
     Lost_load_cost = [i/S for i in Lost_load_cost]
-    BESS_replacement_cost = [i/S for i in BESS_replacement_cost]
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        BESS_replacement_cost = [i/S for i in BESS_replacement_cost]
 
-    Fuel_cost = {}
-    for g in range(1,G+1):
-        Fuel_cost[g] = np.arange(Y)*0  
-        for s in range(1,S+1):    
-            Fuel_cost[g] = [a+b for (a,b) in zip(Fuel_cost[g],fuelcost[s][g].T[0])]
-        Fuel_cost[g] = [i/S for i in Fuel_cost[g]]
-          
-        
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        Fuel_cost = {}
+        for g in range(1,G+1):
+            Fuel_cost[g] = np.arange(Y)*0  
+            for s in range(1,S+1):    
+                Fuel_cost[g] = [a+b for (a,b) in zip(Fuel_cost[g],fuelcost[s][g].T[0])]
+            Fuel_cost[g] = [i/S for i in Fuel_cost[g]]
             
 #%% Plotting
     fig = plt.figure(figsize=(20,15))
@@ -1009,25 +1068,28 @@ def CashFlowPlot(instance,Results,PlotResolution,PlotFormat):
     x_positions = np.arange(Y)
     years = [pd.to_datetime(instance.StartDate()).year+y for y in range(Y)]
 
-            
     "Investment costs"
-    plt.bar(x_positions, 
-            Investment_BESS, 
-            color='#'+BESS_Color,
-            edgecolor= 'black',
-            label='Battery bank',
-            zorder = 3) 
-    base = Investment_BESS
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        plt.bar(x_positions, 
+                Investment_BESS, 
+                color='#'+BESS_Color,
+                edgecolor= 'black',
+                label='Battery bank',
+                zorder = 3) 
+        base = Investment_BESS
 
-    plt.bar(x_positions, 
-            Investment_Grid, 
-            color='#'+Grid_Color,
-            edgecolor= 'black',
-            label='National Grid',
-            zorder = 3) 
-    base = Investment_Grid
+    if instance.Grid_Connection.value == 1:
+        plt.bar(x_positions, 
+                Investment_Grid, 
+                color='#'+Grid_Color,
+                edgecolor= 'black',
+                label='National Grid',
+                zorder = 3) 
+        base = Investment_Grid
     
     for r in range(1,R+1):
+        base = Investment_RES[RES_Names[1]]
+        base = [a+b for (a,b) in zip(base, Investment_RES[RES_Names[r]])]
         plt.bar(x_positions, 
                 Investment_RES[RES_Names[r]], 
                 color='#'+RES_Colors[r], 
@@ -1035,40 +1097,42 @@ def CashFlowPlot(instance,Results,PlotResolution,PlotFormat):
                 label=RES_Names[r],
                 bottom=base,
                 zorder = 3)   
-        base = [a+b for (a,b) in zip(base, Investment_RES[RES_Names[r]])]
-            
-    for g in range(1,G+1):
-        plt.bar(x_positions, 
-                Investment_Gen[Generator_Names[g]],
-                color='#'+Generator_Colors[g], 
-                edgecolor= 'black',
-                label=Generator_Names[g],
-                bottom=base,
-                zorder = 3)   
-        base = [a+b for (a,b) in zip(base, Investment_Gen[Generator_Names[g]])]
+        # base = [a+b for (a,b) in zip(base, Investment_RES[RES_Names[r]])]
+        
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+            plt.bar(x_positions, 
+                    Investment_Gen[Generator_Names[g]],
+                    color='#'+Generator_Colors[g], 
+                    edgecolor= 'black',
+                    label=Generator_Names[g],
+                    bottom=base,
+                    zorder = 3)   
+            base = [a+b for (a,b) in zip(base, Investment_Gen[Generator_Names[g]])]
 
-    
     "Fixed costs"
-    plt.bar(x_positions, 
-            [Fixed_costs_BESS[i][0] for i in range(len(Fixed_costs_BESS))], 
-            color='#'+BESS_Color,
-            edgecolor= 'black',
-            label='_nolegend_',
-            hatch='x',
-            bottom = base,
-            zorder = 3) 
-    base = [a+b for (a,b) in zip(base, [Fixed_costs_BESS[i][0] for i in range(len(Fixed_costs_BESS))])]   
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+        plt.bar(x_positions, 
+                [Fixed_costs_BESS[i][0] for i in range(len(Fixed_costs_BESS))], 
+                color='#'+BESS_Color,
+                edgecolor= 'black',
+                label='_nolegend_',
+                hatch='x',
+                bottom = base,
+                zorder = 3) 
+        base = [a+b for (a,b) in zip(base, [Fixed_costs_BESS[i][0] for i in range(len(Fixed_costs_BESS))])]   
     
-    plt.bar(x_positions, 
-            [Fixed_costs_Grid[i][0] for i in range(len(Fixed_costs_Grid))], 
-            color='#'+Grid_Color,
-            edgecolor= 'black',
-            label='_nolegend_',
-            hatch='x',
-            bottom = base,
-            zorder = 3) 
-    base = [a+b for (a,b) in zip(base, [Fixed_costs_Grid[i][0] for i in range(len(Fixed_costs_Grid))])]
-    
+    if instance.Grid_Connection.value == 1:
+        plt.bar(x_positions, 
+                [Fixed_costs_Grid[i][0] for i in range(len(Fixed_costs_Grid))], 
+                color='#'+Grid_Color,
+                edgecolor= 'black',
+                label='_nolegend_',
+                hatch='x',
+                bottom = base,
+                zorder = 3) 
+        base = [a+b for (a,b) in zip(base, [Fixed_costs_Grid[i][0] for i in range(len(Fixed_costs_Grid))])]
+        
     for r in range(1,R+1):
         plt.bar(x_positions, 
                 [Fixed_costs_RES[r][i][0] for i in range(len(Fixed_costs_RES[r]))], 
@@ -1079,17 +1143,18 @@ def CashFlowPlot(instance,Results,PlotResolution,PlotFormat):
                 bottom=base,
                 zorder = 3)   
         base = [a+b for (a,b) in zip(base, [Fixed_costs_RES[r][i][0] for i in range(len(Fixed_costs_RES[r]))])]
-
-    for g in range(1,G+1):
-        plt.bar(x_positions, 
-                [Fixed_costs_Gen[g][i][0] for i in range(len(Fixed_costs_Gen[g]))], 
-                color='#'+Generator_Colors[g], 
-                edgecolor= 'black',
-                hatch='x',
-                label='_nolegend_',
-                bottom=base,
-                zorder = 3)   
-        base = [a+b for (a,b) in zip(base, [Fixed_costs_Gen[g][i][0] for i in range(len(Fixed_costs_Gen[g]))])]
+        
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):
+            plt.bar(x_positions, 
+                    [Fixed_costs_Gen[g][i][0] for i in range(len(Fixed_costs_Gen[g]))], 
+                    color='#'+Generator_Colors[g], 
+                    edgecolor= 'black',
+                    hatch='x',
+                    label='_nolegend_',
+                    bottom=base,
+                    zorder = 3)   
+            base = [a+b for (a,b) in zip(base, [Fixed_costs_Gen[g][i][0] for i in range(len(Fixed_costs_Gen[g]))])]
 
     "Variable costs"
     plt.bar(x_positions, 
@@ -1102,36 +1167,39 @@ def CashFlowPlot(instance,Results,PlotResolution,PlotFormat):
             zorder = 3) 
     base = [a+b for (a,b) in zip(base, Lost_load_cost)]        
     
-    plt.bar(x_positions, 
-            BESS_replacement_cost, 
-            color='#'+BESS_Color,
-            edgecolor= 'black',
-            label='_nolegend_',
-            hatch='//',                     
-            bottom = base,
-            zorder = 3) 
-    base = [a+b for (a,b) in zip(base, BESS_replacement_cost)]        
-    
-    plt.bar(x_positions, 
-            Grid_Electricity_cost, 
-            color='#'+Grid_Color,
-            edgecolor= 'black',
-            label='_nolegend_',
-            hatch='//',                     
-            bottom = base,
-            zorder = 3) 
-    base = [a+b for (a,b) in zip(base, Grid_Electricity_cost)] 
-
-    for g in range(1,G+1):        
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
         plt.bar(x_positions, 
-                Fuel_cost[g], 
-                color='#'+Generator_Colors[g],
+                BESS_replacement_cost, 
+                color='#'+BESS_Color,
                 edgecolor= 'black',
                 label='_nolegend_',
                 hatch='//',                     
                 bottom = base,
                 zorder = 3) 
-        base = [a+b for (a,b) in zip(base, Fuel_cost[g])]  
+        base = [a+b for (a,b) in zip(base, BESS_replacement_cost)]        
+    
+    if instance.Grid_Connection.value == 1:
+            plt.bar(x_positions, 
+                    Grid_Electricity_cost, 
+                    color='#'+Grid_Color,
+                    edgecolor= 'black',
+                    label='_nolegend_',
+                    hatch='//',                     
+                    bottom = base,
+                    zorder = 3) 
+            base = [a+b for (a,b) in zip(base, Grid_Electricity_cost)] 
+        
+    if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+        for g in range(1,G+1):        
+            plt.bar(x_positions, 
+                    Fuel_cost[g], 
+                    color='#'+Generator_Colors[g],
+                    edgecolor= 'black',
+                    label='_nolegend_',
+                    hatch='//',                     
+                    bottom = base,
+                    zorder = 3) 
+            base = [a+b for (a,b) in zip(base, Fuel_cost[g])]  
 
 
     "Hatch legend traces"
@@ -1219,23 +1287,25 @@ def SizePlot(instance,Results,PlotResolution,PlotFormat):
                     label=RES_Names[r],
                     zorder = 3)
             x_ticks += [RES_Names[r]]
+        
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+            for g in range(1,G+1):
+                ax1.bar(x_positions[R+g-1], 
+                        Results['Size'].loc[idx[Generator_Names[g],:],'Total'].values[0], 
+                        color='#'+Generator_Colors[g],
+                        edgecolor= 'black',
+                        label=Generator_Names[g],
+                        zorder = 3)
+                x_ticks += [Generator_Names[g]]
 
-        for g in range(1,G+1):
-            ax1.bar(x_positions[R+g-1], 
-                    Results['Size'].loc[idx[Generator_Names[g],:],'Total'].values[0], 
-                    color='#'+Generator_Colors[g],
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+            ax2.bar(x_positions[-1], 
+                    Results['Size'].loc[idx['Battery bank',:],'Total'].values[0], 
+                    color='#'+BESS_Color,
                     edgecolor= 'black',
-                    label=Generator_Names[g],
+                    label='Battery bank',
                     zorder = 3)
-            x_ticks += [Generator_Names[g]]
-
-        ax2.bar(x_positions[-1], 
-                Results['Size'].loc[idx['Battery bank',:],'Total'].values[0], 
-                color='#'+BESS_Color,
-                edgecolor= 'black',
-                label='Battery bank',
-                zorder = 3)
-        x_ticks += ['Battery bank']
+            x_ticks += ['Battery bank']
 
         ax1.set_xlabel('Components', fontsize=fontaxis)
         ax1.set_ylabel('Installed capacity [kW]', fontsize=fontaxis)
@@ -1268,22 +1338,24 @@ def SizePlot(instance,Results,PlotResolution,PlotFormat):
                     zorder = 3, 
                     bottom = base)
             base = [a+b for (a,b) in zip(base, Results['Size'].loc[idx[RES_Names[r],:],['Step '+str(s) for s in range(1,ST+1)]].values[0])]
-        for g in range(1,G+1):
-            ax1.bar(x_positions, 
-                    Results['Size'].loc[idx[Generator_Names[g],:],['Step '+str(s) for s in range(1,ST+1)]].values[0], 
-                    color='#'+Generator_Colors[g],
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
+            for g in range(1,G+1):
+                ax1.bar(x_positions, 
+                        Results['Size'].loc[idx[Generator_Names[g],:],['Step '+str(s) for s in range(1,ST+1)]].values[0], 
+                        color='#'+Generator_Colors[g],
+                        edgecolor= 'black',
+                        label=Generator_Names[g],
+                        zorder = 3, 
+                        bottom = base)
+                base = [a+b for (a,b) in zip(base, Results['Size'].loc[idx[Generator_Names[g],:],['Step '+str(s) for s in range(1,ST+1)]].values[0])]
+        
+        if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
+            ax2.bar(x_positions, 
+                    Results['Size'].loc[idx['Battery bank',:],['Step '+str(s) for s in range(1,ST+1)]].values[0], 
+                    color='#'+BESS_Color,
                     edgecolor= 'black',
-                    label=Generator_Names[g],
-                    zorder = 3, 
-                    bottom = base)
-            base = [a+b for (a,b) in zip(base, Results['Size'].loc[idx[Generator_Names[g],:],['Step '+str(s) for s in range(1,ST+1)]].values[0])]
-
-        ax2.bar(x_positions, 
-                Results['Size'].loc[idx['Battery bank',:],['Step '+str(s) for s in range(1,ST+1)]].values[0], 
-                color='#'+BESS_Color,
-                edgecolor= 'black',
-                label='Battery bank',
-                zorder = 3) 
+                    label='Battery bank',
+                    zorder = 3) 
     
         ax1.set_xlabel('Investment steps', fontsize=fontaxis)
         ax1.set_ylabel('Installed capacity [kW]', fontsize=fontaxis)

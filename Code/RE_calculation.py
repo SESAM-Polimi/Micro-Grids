@@ -222,7 +222,7 @@ def wind_parameters(Data_import):
     elif type_turb == 'VA':
         skipf = 0
         skiprow = 36
-    data1 = pd.read_excel('Inputs/Generation.xlsx', sheetname = "WT Power Curve", skiprows = skiprow,  skipfooter = skipf) 
+    data1 = pd.read_excel('Inputs/Generation.xlsx', sheet_name = "WT Power Curve", skiprows = skiprow,  skipfooter = skipf) 
     df = pd.DataFrame(data1, columns= [turb_model])
     power_curve = (df[turb_model][4:34]).values.tolist()
     rot_diam = df[turb_model][1]
@@ -837,7 +837,7 @@ def RE_supply():
     
 ### Reads .dat file, saves input data and creates the lists of daily and hourly URLs
     
-    data_file = "Inputs/Model_data.dat"
+    data_file = "Inputs/Parameters.dat"
     data_import = open(data_file).readlines()
     (date_start, date_end, lat, lon, lat_ext_1,lon_ext_1, lat_ext_2, lon_ext_2, standard_lon, URL_1_d, URL_2_d ) = URL_creation_d(data_import)
     URL_h = URL_creation_h(data_import)

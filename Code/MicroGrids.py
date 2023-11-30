@@ -1,9 +1,10 @@
 import time
-from pyomo.environ import  AbstractModel
+from pyomo.environ import AbstractModel
 from Model_Creation import Model_Creation
 from Model_Resolution import Model_Resolution
 from Results import ResultsSummary, TimeSeries, PrintResults
-from Plots import DispatchPlot, DispatchPlot1, DispatchPlot2, DispatchPlot3, CashFlowPlot, SizePlot
+from Plots import DispatchPlot, SizePlot
+
 
 start = time.time()         # Start time counter
 model = AbstractModel()     # Define type of optimization problem
@@ -11,13 +12,15 @@ model = AbstractModel()     # Define type of optimization problem
 #%% Processing
 
 Model_Creation(model) # Creation of the Sets, parameters and variables.
-instance = Model_Resolution(model) # Resolution of the instance    
+
+# Resolve the model instance
+instance = Model_Resolution(model)
 
 #%% Results
 
-Time_Series = TimeSeries(instance)
+Time_Series       = TimeSeries(instance)
 Optimization_Goal = instance.Optimization_Goal.extract_values()[None]
-Results    = ResultsSummary(instance, Optimization_Goal,Time_Series) 
+Results           = ResultsSummary(instance, Optimization_Goal,Time_Series) 
 
 #%% Plot and print-out
 PlotScenario = 1                     # Plot scenario
@@ -61,3 +64,4 @@ PrintResults(instance, Results)
 end = time.time()
 elapsed = end - start
 print('\n\nModel run complete (overall time: ',round(elapsed,0),'s,',round(elapsed/60,1),' m)\n')
+
