@@ -3,6 +3,8 @@ import time, sys, concurrent.futures, urllib.request, urllib.parse, urllib.error
 import pandas as pd, math, numpy as np, re, bisect, json, operator, copy, matplotlib.pyplot as plt
 # from windrose import WindroseAxes
 import csv
+
+from Solar_Minute_Model import *
 #%% Input data section
 
 ### Import URL components for the POWER API by NASA and generate the URL (two different functions depending on time resolution)
@@ -16,15 +18,15 @@ def URL_creation_d(Data_import):
         if "param: parameters_1" in value:
             parameters_1 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
             
-        if "param: Solar_Resolution" in value:
-            Solar_Resolution = int(value[value.index('=')+1:value.index(';')].replace(' ',''))
-            if Solar_Resolution == 0:
-                if "param: parameters_2" in value:
-                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-            if Solar_Resolution == 1:
-                if "param: parameters_2_R" in value:
-                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-        
+            
+        # if "param: Minute_Resolution" in value:
+        #     Minute_Resolution = int((re.findall('\d+',value)[0]))
+        # if "param: parameters_2_R" in value:
+        #     parameters_2_R = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+        if "param: parameters_2" in value:
+            parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+
+
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -67,6 +69,11 @@ def URL_creation_d(Data_import):
     
     lon_ext_2 = [lon_grid_2[bisect.bisect_left(lon_grid_2.tolist(),lon)-1], lon_grid_2[bisect.bisect_left(lon_grid_2,lon)]]
     
+    
+    # if Minute_Resolution:
+    #     parameters_2 = parameters_2_R
+        
+        
     '''Generates a daily URL for each node of the square'''
     for ii in range(2):
         URL_1.append((base_URL + temp_res + loc_id + parameters_1 + community + '&longitude=' + str(lon_ext_1[ii]) + '&latitude=' + str(lat_ext_1[0]) + date_start + date_end +  output_format).replace("'","") + "&time-standard=utc")
@@ -87,15 +94,15 @@ def URL_creation_d(Data_import):
         if "param: parameters_1" in value:
             parameters_1 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
         
-        if "param: Solar_Resolution" in value:
-            Solar_Resolution = int(value[value.index('=')+1:value.index(';')].replace(' ',''))
-            if Solar_Resolution == 0:
-                if "param: parameters_2" in value:
-                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-            if Solar_Resolution == 1:
-                if "param: parameters_2_R" in value:
-                    parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
         
+        # if "param: Minute_Resolution" in value:
+        #     Minute_Resolution = int((re.findall('\d+',value)[0]))
+        # if "param: parameters_2_R" in value:
+        #     parameters_2_R = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+        if "param: parameters_2" in value:
+            parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+
+
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -138,6 +145,9 @@ def URL_creation_d(Data_import):
     
     lon_ext_2 = [lon_grid_2[bisect.bisect_left(lon_grid_2.tolist(),lon)-1], lon_grid_2[bisect.bisect_left(lon_grid_2,lon)]]
     
+    # if Minute_Resolution:
+    #     parameters_2 = parameters_2_R
+
     '''Generates a daily URL for each node of the square'''
     for ii in range(2):
         URL_1.append((base_URL + temp_res + loc_id + parameters_1 + community + '&longitude=' + str(lon_ext_1[ii]) + '&latitude=' + str(lat_ext_1[0]) + date_start + date_end +  output_format).replace("'","") + "&time-standard=utc")
@@ -156,14 +166,14 @@ def URL_creation_h(Data_import):
         if "param: loc_id" in value:
             loc_id = '/' + value[value.index('=')+1:value.index(';')].replace(' ','')
             
-        if "param: Solar_Resolution" in value:
-            Solar_Resolution = int(value[value.index('=')+1:value.index(';')].replace(' ',''))
-            if Solar_Resolution == 0:
-                if "param: parameters_3" in value:
-                    parameters = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-            if Solar_Resolution == 1:
-                if "param: parameters_3_R" in value:
-                    parameters = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+         
+        # if "param: Minute_Resolution" in value:
+        #     Minute_Resolution = int((re.findall('\d+',value)[0]))   
+        if "param: parameters_3" in value:
+            parameters = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))        
+        # if "param: parameters_3_R" in value:
+        #     parameters_R = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
+        
         
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
@@ -199,11 +209,14 @@ def URL_creation_h(Data_import):
     lat_ext = [lat_grid[bisect.bisect_left(lat_grid.tolist(),lat)-1], lat_grid[bisect.bisect_left(lat_grid,lat)]]  #here finds the 
     lon_ext = [lon_grid[bisect.bisect_left(lon_grid.tolist(),lon)-1], lon_grid[bisect.bisect_left(lon_grid,lon)]]
     
+    
+    # if Minute_Resolution:
+    #     parameters = parameters_R
+
     # generates a daily URL for each node of the square
     for ii in range(2):
         URL.append((base_URL + temp_res + loc_id + parameters + community + '&longitude=' + str(lon_ext[ii]) + '&latitude=' + str(lat_ext[0]) + date_start + date_end +  output_format).replace("'","")+ "&time-standard=utc")
         URL.append((base_URL + temp_res + loc_id + parameters + community + '&longitude=' + str(lon_ext[ii]) + '&latitude=' + str(lat_ext[1]) + date_start + date_end +  output_format).replace("'","")+ "&time-standard=utc")
-
 
     return URL
 
@@ -246,7 +259,7 @@ def wind_parameters(Data_import):
     elif type_turb == 'VA':
         skipf = 0
         skiprow = 36
-    data1 = pd.read_csv('Inputs/WT_Power_Curve.csv', skiprows = skiprow,  skipfooter = skipf, delimiter=';', decimal=',') 
+    data1 = pd.read_csv('Inputs/WT_Power_Curve.csv', skiprows = skiprow,  skipfooter = skipf, delimiter=';', decimal=',', engine='python') 
     df = pd.DataFrame(data1, columns= [turb_model])
     power_curve = (df[turb_model][4:34]).values.tolist()
     rot_diam = df[turb_model][1]
@@ -299,14 +312,25 @@ def bilinear_interpolation(x, y, points):
 
 ### Converts JSON data into lists and applies 2D interpolation
 
-def data_2D_interpolation(jsdata, date_start, date_end, lat, lon,lat_ext_1, lon_ext_1, lat_ext_2, lon_ext_2):
+def data_2D_interpolation(jsdata, date_start, date_end, lat, lon,lat_ext_1, lon_ext_1, lat_ext_2, lon_ext_2, Data_import):
+    
+    for value in Data_import:
+        if "param: Minute_Resolution" in value:
+            Minute_Resolution = int((re.findall('\d+',value)[0]))
+            
     ''' Here converting JSON daily data into daily annidated list param_daily_list '''
     jsdata_daily_1 = jsdata[0:4]
     jsdata_daily_2 = jsdata[4:8]
     jsdata_hourly = jsdata[8:12]
     param_daily_list = []
     param_daily_str_1 = ['ALLSKY_SFC_SW_DWN'] 
-    param_daily_str_2 = ['T2MWET','T2M','WS50M']   
+    param_daily_str_2 = ['T2MWET','T2M','WS50M']
+    
+    # param_daily_str_2_R = ['T2MWET, T2M, WS50M, WS10M, PS, CLOUD_AMT']
+    
+    # if Minute_Resolution:
+    #     param_daily_str_2 = param_daily_str_2_R
+    #     print(param_daily_str_2)
     
     for jsdata_d_1 in jsdata_daily_1:
         pydata_d = json.loads(jsdata_d_1)    
@@ -379,7 +403,7 @@ def data_2D_interpolation(jsdata, date_start, date_end, lat, lon,lat_ext_1, lon_
             for jj in range(len(param_daily_2[0])):
                 for kk in range(12):
                     param_hourly[ii][jj][kk] = [[] for yy in range(len(param_daily_2[0][jj][kk]))]
-        param_hourly_str = ['WS50M','WS2M', 'WD50M','T2M']    
+        param_hourly_str = ['WS50M','WS2M', 'WD50M','T2M']  
         keys = pydata['properties']['parameter'][param_hourly_str[0]].keys()
         for param in range(len(param_hourly_str)):  
             jj = int(date_start[7:11])
@@ -714,12 +738,12 @@ def hourly_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
     K_T = H_day/H_extra                                                                                                                  #daily clearness index
     
     # Calculation of diffuse daily irradiation with Erbs correlation
-    
+
     K_diff = erbs_corr(omega_s,K_T)
     H_diff = K_diff * H_day                                                                                                              #daily diffuse irradiation on a normal surface
     
     # Calculation of diffuse and total hourly irradiation with LJ and CPR correlation 
-    
+
     EoT = 229.2*(0.000075+0.001868*math.cos(B)-0.032077*math.sin(B)-0.014615*math.cos(2*B)-0.04089*math.sin(2*B))                        #equation of time [min]
     a_r= 0.409 + 0.5016 * math.sin(omega_s - math.pi/3)
     b_r= 0.6609 - 0.4767 * math.sin(omega_s - math.pi/3)
@@ -731,15 +755,18 @@ def hourly_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
     t_s_lst = []
     omega_lst = []
     ro_g = albedo
+    theta_z_list = []
+    
     for hour_day in range(0,24):
-        clock_time = hour_day 
+        clock_time = hour_day
         t_s = clock_time - 4*(standard_lon - lon)/60 + EoT/60
         t_s_lst.append(t_s)                                                                               #solar time in hours
+        # print('t_s',t_s)
         omega = (math.pi/180)* 15 * (t_s - 12)  
         omega_lst.append(omega)                                                                                                      #hour angle
         r_d_lj = math.pi/24 * (math.cos(omega)-math.cos(omega_s))/(math.sin(omega_s) - omega_s * math.cos(omega_s))                                 #Liu-Jordan correlation for diffuse hourly irradiation
         r_d_CBR = (a_r + b_r * math.cos(omega)) * r_d_lj  
-        r_d_CBR_lst.append(r_d_CBR)                                                                                           #Collares-Pereira-Rabl correlation for total hourly irradiation
+        r_d_CBR_lst.append(r_d_CBR)                                                                               #Collares-Pereira-Rabl correlation for total hourly irradiation
         if r_d_lj < 0:
             I_diff = 0
         else:
@@ -751,6 +778,7 @@ def hourly_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
         else:
             I_tot = 0
         theta_z = abs(math.acos(math.cos(phi) * math.cos(delta)*math.cos(omega)+ math.sin(phi)*math.sin(delta)))                                    #zenith angle
+        theta_z_list.append(theta_z)
         gamma_s = np.sign(omega) * abs((math.acos((math.cos(theta_z) * math.sin(phi) - math.sin(delta))/(math.sin(theta_z) * math.cos(phi)))))  #solar azimuth angle
         theta_i = math.acos(math.cos(theta_z) * math.cos(beta) + math.sin(theta_z) *math.sin(beta) * math.cos(gamma_s -  gamma))                  #angle of incidence
         I_tot_lst.append(I_tot)
@@ -762,6 +790,7 @@ def hourly_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
         if math.cos(theta_z) < 0.1:
            theta_i = math.pi/2
         I_tilt.append(I_tilt_f(beta, I_tot, I_diff, ro_g, theta_z, theta_i))
+        
     return I_tilt
 
 ### Calculation of daily extraterrestrial irradiation
@@ -870,11 +899,16 @@ def RE_supply():
     print("Downloading time-series from NASA POWER...\n")
     try:
         jsdata = multithread_data_download(URL_list) 
-        param_daily_interp, param_hourly_interp = data_2D_interpolation(jsdata, date_start, date_end,lat, lon, lat_ext_1, lon_ext_1, lat_ext_2, lon_ext_2)
+        param_daily_interp, param_hourly_interp = data_2D_interpolation(jsdata, date_start, date_end,lat, lon, lat_ext_1, lon_ext_1, lat_ext_2, lon_ext_2, data_import)
     except:
         print("POWER server response error, please try again")
         sys.exit(1)        
     print("Completed\n")
+    
+    for value in data_import:
+        if "param: Minute_Resolution" in value:
+            Minute_Resolution = int((re.findall('\d+',value)[0]))
+    
     
 ### Calculate the typical year using the daily parameters 
     
@@ -891,28 +925,39 @@ def RE_supply():
     
 ### Find the vector of hourly irradiation on a tilted surface for all days of the year [W/m^2 h] and K_T for power calculation
     
-    print("Calculating the solar PV production in the typical year... \n")      
-    I_tilt = [[] for i in range(len(param_typical_daily[0]))]        #[KWh/m^2]
-    day = 1
-    for month in range(len(param_typical_daily[0])):
-        for day_year in range(len(param_typical_hourly[0][month])):     
-            I_tilt[month].append(hourly_solar(param_typical_daily[0][month][day_year],lat,lon, standard_lon, day,tilt, azim, ro_ground))   #hourly irradiation [kWh/m^2] on tilted surface
-            day = day + 1
-             
+    print("Calculating the solar PV production in the typical year... \n")    
+    if Minute_Resolution:
+        I_tilt = Solar_Model(param_typical_daily[0],param_typical_hourly[0],lat,lon, standard_lon, tilt, azim, ro_ground)   #hourly irradiation [kWh/m^2] on tilted surface
+    else: 
+        I_tilt = [[] for i in range(len(param_typical_daily[0]))]        #[KWh/m^2]
+        day = 1
+        for month in range(len(param_typical_daily[0])):
+            for day_year in range(len(param_typical_hourly[0][month])):     
+                I_tilt[month].append(hourly_solar(param_typical_daily[0][month][day_year],lat,lon, standard_lon, day,tilt, azim, ro_ground))   #hourly irradiation [kWh/m^2] on tilted surface
+                day = day + 1
+
 ### Calculate electricity production from the PV system
-    
+
     T_amb = param_typical_hourly[3]                               #[°C]
     T_cell = [[] for ii in range(len(T_amb))]    
     energy_PV = [[] for ii in range(len(T_amb))]
-    
-    for ii in range(len(T_amb)):   
+
+    for ii in range(len(T_amb)): #month
         T_cell[ii] = [[] for ii in range(len(T_amb[ii]))]
         energy_PV[ii] = [[] for ii in range(len(T_amb[ii]))]   
-        for jj in range(len(T_amb[ii])):
-            for kk in range(len(T_amb[ii][jj])):
-                T_cell[ii][jj].append(T_amb[ii][jj][kk] + ((NMOT - T_NMOT)/G_NMOT)*I_tilt[ii][jj][kk]*1000)          #find the vector of hourly average cell T using T2M
-                energy_PV[ii][jj].append((I_tilt[ii][jj][kk])* nom_power * (1+(k_T/100)*(T_cell[ii][jj][kk]-25)))                #[Wh/module]
-     
+        for jj in range(len(T_amb[ii])): #day
+            if Minute_Resolution:
+                kk = 0 
+                for mm in range(24*60):  
+                    T_cell[ii][jj].append(T_amb[ii][jj][kk] + ((NMOT - T_NMOT)/G_NMOT)*I_tilt[ii][jj][mm]*1000)          #find the vector of hourly average cell T using T2M
+                    energy_PV[ii][jj].append((I_tilt[ii][jj][mm])* nom_power * (1+(k_T/100)*(T_cell[ii][jj][mm]-25)))                #[Wh/module]
+                    if (mm + 1) % 60 == 0:
+                        kk +=1
+            else:
+                for kk in range(len(T_amb[ii][jj])): #hour
+                    T_cell[ii][jj].append(T_amb[ii][jj][kk] + ((NMOT - T_NMOT)/G_NMOT)*I_tilt[ii][jj][kk]*1000)          #find the vector of hourly average cell T using T2M
+                    energy_PV[ii][jj].append((I_tilt[ii][jj][kk])* nom_power * (1+(k_T/100)*(T_cell[ii][jj][kk]-25)))                #[Wh/module]
+
     print("Completed\n")  
     
 ### Wind turbine electricity production calculation
@@ -933,7 +978,7 @@ def RE_supply():
     dataf = export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp) 
     filename = 'Inputs/RES_Time_Series.csv'
     book = pd.DataFrame(dataf)
-    book.to_csv(filename, sep=';', decimal=',', quotechar = ' ', index=False, header = True)
+    book.to_csv(filename, sep=';', decimal=',', quotechar = ' ', index= True, header = True)
 
     # Timing
     end = time.time()

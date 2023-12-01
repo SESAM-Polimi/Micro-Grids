@@ -86,11 +86,14 @@ for i in range(len(Data_import)):
     if "param: Real_Discount_Rate" in Data_import[i]:      
         Discount_Rate_default = float((re.findall("\d+\.\d+|\d+|\d+",Data_import[i])[0]))
 
-
+    if "param: Minute_Resolution" in Data_import[i]:      
+        Minute_Resolution = int((re.findall('\d+',Data_import[i])[0]))
+      
 scenario = [i for i in range(1,n_scenarios+1)]
 year = [i for i in range(1,n_years+1)]
 period = [i for i in range(1,n_periods+1)]
 generator = [i for i in range(1,n_generators+1)]
+
 
 #%% This section is useful to define the number of investment steps as well as to assign each year to its corresponding step
 def Initialize_Upgrades_Number(model):
@@ -139,7 +142,7 @@ def Initialize_Discount_Rate(model):
 #%% This section imports the multi-year Demand and Renewable-Energy output and creates a Multi-indexed DataFrame for it
 
 if RE_Supply_Calculation:
-    Renewable_Energy = RE_supply().set_index(pd.Index(range(1, 8761)), inplace=False)
+    Renewable_Energy = RE_supply()
 else:
     Renewable_Energy = pd.read_csv('Inputs/RES_Time_Series.csv', delimiter=';', decimal=',', header=0)
 

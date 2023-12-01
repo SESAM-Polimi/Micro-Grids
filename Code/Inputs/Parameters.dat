@@ -7,10 +7,7 @@ param: base_URL:= 'https://power.larc.nasa.gov/api/temporal/';               	#U
 param: loc_id := 'point';                                                       #spatial resolution
 param: parameters_1 := 'ALLSKY_SFC_SW_DWN';			                            #parameters of daily data with resolution of 1° x 1°
 param: parameters_2 := 'T2MWET, T2M, WS50M';			                        #parameters of daily data with resolution of 0.5° x 0.625°
-param: parameters_2_R := 'T2MWET, T2M, WS50M, WS10M, PS, CLOUD_AMT';			                        #parameters of daily data with resolution of 0.5° x 0.625°
-param: parameters_3 := 'WS50M, WS2M, WD50M, T2M';		                          #parameters of hourly data
-param: parameters_3_R := 'WS50M, WS2M, WD50M, T2M, WS10M, PS, CLOUD_AMT';		    #parameters of hourly data
-
+param: parameters_3 := 'WS50M, WS2M, WD50M, T2M';		                        #parameters of hourly data
 
 param: date_start := '20150101';  						#starting date for dataset (from 2001)
 param: date_end := '20201231';      						#ending date for dataset (until 2020)
@@ -99,7 +96,7 @@ param: Grid_Availability_Simulation := 0;                   # Options: 1 to simu
 param: Grid_Connection_Type := 1;	                        # Options: 2 for sell/purchase power with the national grid, 1 for purchase only
 param: WACC_Calculation := 0;                               # Options: 1 to select Weighted Average Cost of Capital calculation, 0 otherwise
 
-param: Solar_Resolution := 1;                              # Options: just in the case the model is being run for 1 minute
+param: Minute_Resolution := 1;                              # Options: just in the case the model is being run for 1 minute
 
 param: Model_Components := 0;	                            # Options: 0 for batteries and generators, 1 for batteries only, 2 for generators only
 
