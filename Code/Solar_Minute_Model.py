@@ -18,16 +18,18 @@ import pandas as pd, math, numpy as np, re, bisect, json, operator, copy, matplo
     
 #Full battery model for MGPy integration
 
-def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, standard_lon, tilt, azimuth, albedo):
+def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albedo, theta_z, theta_i, I_tot, I_dir):
+
     print('Starting Solar Model to calculate minute solar irradiance')
     
     #%% DATA from NASA POWER
     '''Download data from NASA POWER for solar minute model'''
-    
+
     locations = [(-11.33,30.21)]  # lat/lon
     
     output = r""
     base_url1 = r"https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=WS10M,PS,CLOUD_AMT&community=SB&longitude=30.21&latitude=-11.33&start=20120101&end=20161231&format=JSON"
+    
     base_url2 = r"https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=WS10M,PS,CLOUD_AMT&community=SB&longitude=30.21&latitude=-11.33&start=20170101&end=20211231&format=JSON"
     
     for latitude, longitude in locations:
@@ -432,7 +434,6 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, standard_lo
     
     for u in np.arange(1,wind_speed_range+1).reshape(-1):
         epm = int(u / (10 / 60)) # 1 element of cloud sample c=10m. wind speed u is m/s. # resolution is r=60 s/element. thus, u/(c/r) = elements
-        # cloud_sample = (np.ceil(cloud_sample)).astype(int)
         cloud_resampled = signal.decimate(cloud_sample,epm)
         cloud_resampled[cloud_resampled < 0.5] = 0
         cloud_resampled[cloud_resampled >= 0.5] = 1
@@ -672,100 +673,20 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, standard_lo
         coverage_1min_sim[(h*t_res):((h+1)*t_res)] = coverage
         
     #%% Irradiance_MGPy
-    H_day = []
-    for month in range(len(param_typical_daily)):
-        for day_year in range(len(param_typical_hourly[month])):     
-            H_day.append(param_typical_daily[month][day_year])   
-
-    I_tilt = []
-    I_tot_lst = []
-    I_dir_lst = []
-    I_diff_lst = []
-    r_d_CBR_lst = []
-    t_s_lst = []
-    omega_lst = []
-    ro_g = albedo
+    
     theta_z_list = []
     theta_i_list = []
+    I_tot_lst = []
+    I_dir_lst = [] 
     
-    for day_year in range(1,366):
-        B = (day_year-1)*2*math.pi/365
-        delta =  math.radians(23.45*(math.sin(math.radians((day_year+284)*360/365))))               #declination angle in radians
-        phi = lat * math.pi/180
-        beta = tilt * math.pi/180
-        gamma = azimuth*math.pi/180                                              
-        
-        # Calculation of daily extraterrestrial irradiation 
-        if (-math.tan(phi)*math.tan(delta))>1:
-            omega_s = 0.001
-        elif (-math.tan(phi)*math.tan(delta))<-1:
-            omega_s = math.pi
-        else:
-            omega_s = math.acos((-math.tan(phi)*math.tan(delta)))                                                                            #sunset hour angle
-        E_0 = 1.000110 + 0.034221 * math.cos(B) + 0.001280*math.sin(B) + 0.000719*math.cos(2*B) + 0.000077*math.sin(2*B)                     #ratio between average sun-earth distance and distance in day day_year (Iqbal correlation)
-        G_0n = 1.367*E_0                                                                                                                     #extraterrestrial irradiance [kW/m^2] incident on a normal surface in the day day_year
-        H_extra = (24/math.pi) * G_0n * (math.cos(phi) * math.cos(delta) * math.sin(omega_s) + omega_s * math.sin(phi) * math.sin(delta))    #extraterr. daily irradiation on a normal surface [kWh/m^2]
-        K_T = H_day[day_year-1]/H_extra                                                                                                                  #daily clearness index
-        
-        # Calculation of diffuse daily irradiation with Erbs correlation
-        
-        omega_s = omega_s*180/math.pi
-        if omega_s <= 81.4:
-            if K_T < 0.715:
-                K_diff = 1 - 0.2727*K_T + 2.4495*(K_T**2) - 11.9514*(K_T**3) + 9.3879*(K_T**4)
-            else: 
-                K_diff = 0.143
-        else:
-            if K_T<0.722:
-                K_diff = 1 + 0.2832*K_T-2.5557*(K_T**2)+0.8448*(K_T**3)
-            else:
-                K_diff = 0.175
-        
-        H_diff = K_diff * H_day[day_year-1]                                                                                                            #daily diffuse irradiation on a normal surface
-        
-        # Calculation of diffuse and total hourly irradiation with LJ and CPR correlation 
-        
-        EoT = 229.2*(0.000075+0.001868*math.cos(B)-0.032077*math.sin(B)-0.014615*math.cos(2*B)-0.04089*math.sin(2*B))                        #equation of time [min]
-        a_r= 0.409 + 0.5016 * math.sin(omega_s - math.pi/3)
-        b_r= 0.6609 - 0.4767 * math.sin(omega_s - math.pi/3)
-        
-        for hour_day in range(24):
-            # for minute_hour in range(60):
-                # clock_time = hour_day + minute_hour/60 
-                clock_time = hour_day 
-                t_s = clock_time - 4*(standard_lon - lon)/60 + EoT/60
-                t_s_lst.append(t_s)                                                                              
-                omega = (math.pi/180)* 15 * (t_s - 12)  
-                omega_lst.append(omega)                                                                                                      
-                r_d_lj = math.pi/24 * (math.cos(omega)-math.cos(omega_s))/(math.sin(omega_s) - omega_s * math.cos(omega_s))  #Liu-Jordan correlation for diffuse hourly irradiation
-                print('r_d_lj',r_d_lj)
-                r_d_CBR = (a_r + b_r * math.cos(omega)) * r_d_lj  
-                r_d_CBR_lst.append(r_d_CBR) 
-                if r_d_lj < 0:
-                    I_diff = 0
-                else:
-                    I_diff = r_d_lj * H_diff                                                                                                                    #diffuse hourly irradiation
-                if r_d_CBR>0:
-                   I_tot = r_d_CBR * H_day[day_year-1]                                                                       #total hourly irradiation
-                   if I_tot - I_diff <0:
-                       I_tot = I_diff
-                else:
-                    I_tot = 0
-
-                theta_z = abs(math.acos(math.cos(phi) * math.cos(delta)*math.cos(omega)+ math.sin(phi)*math.sin(delta)))                                    #zenith angle
-                theta_z_list.append(theta_z)
-                gamma_s = np.sign(omega) * abs((math.acos((math.cos(theta_z) * math.sin(phi) - math.sin(delta))/(math.sin(theta_z) * math.cos(phi)))))  #solar azimuth angle
-                theta_i = math.acos(math.cos(theta_z) * math.cos(beta) + math.sin(theta_z) *math.sin(beta) * math.cos(gamma_s -  gamma))                  #angle of incidence
-                theta_i_list.append(theta_i)
-                I_tot_lst.append(I_tot)
-                I_diff_lst.append(I_diff)
-                if I_tot-I_diff>0:
-                    I_dir_lst.append(I_tot-I_diff)
-                else:
-                    I_dir_lst.append(0)
-                if math.cos(theta_z) < 0.1:
-                   theta_i = math.pi/2
-    
+    for d in range(365):
+        for m in range(24*60):
+            
+            theta_z_list.append(theta_z[d][m])
+            theta_i_list.append(theta_i[d][m])
+            I_tot_lst.append(I_tot[d][m])
+            I_dir_lst.append(I_dir[d][m])
+           
     #%% ClearSkyIndices_SIG 
     print('Probabilistically deriving clear-sky irradiance using SIG method')
     
@@ -863,12 +784,13 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, standard_lo
             I_tot[i] = 0
             
         I_diff[i] = I_tot[i] - direct_horizontal[i]
-        
+
+    ro_g = albedo
+    beta = tilt * math.pi/180
     for i in range(0,len(kcMinutely)):
         I_tilt1.append(I_tilt_f(beta, I_tot[i], I_diff[i], ro_g, theta_z_list[i], theta_i_list[i]))
         
     I_tilt = [[] for i in range(len(param_typical_daily))] #number of months
-    
     internal_list = []
     x=0
     for month in range(len(param_typical_daily)):

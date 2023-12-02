@@ -17,16 +17,8 @@ def URL_creation_d(Data_import):
             loc_id = '/' + value[value.index('=')+1:value.index(';')].replace(' ','')
         if "param: parameters_1" in value:
             parameters_1 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-            
-            
-        # if "param: Minute_Resolution" in value:
-        #     Minute_Resolution = int((re.findall('\d+',value)[0]))
-        # if "param: parameters_2_R" in value:
-        #     parameters_2_R = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
         if "param: parameters_2" in value:
             parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-
-
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -68,11 +60,7 @@ def URL_creation_d(Data_import):
     lat_ext_2 = [lat_grid_2[bisect.bisect_left(lat_grid_2.tolist(),lat)-1], lat_grid_2[bisect.bisect_left(lat_grid_2,lat)]]  #here finds the 
     
     lon_ext_2 = [lon_grid_2[bisect.bisect_left(lon_grid_2.tolist(),lon)-1], lon_grid_2[bisect.bisect_left(lon_grid_2,lon)]]
-    
-    
-    # if Minute_Resolution:
-    #     parameters_2 = parameters_2_R
-        
+      
         
     '''Generates a daily URL for each node of the square'''
     for ii in range(2):
@@ -165,16 +153,8 @@ def URL_creation_h(Data_import):
             base_URL = value[value.index('=')+1:value.index(';')].replace(' ','')
         if "param: loc_id" in value:
             loc_id = '/' + value[value.index('=')+1:value.index(';')].replace(' ','')
-            
-         
-        # if "param: Minute_Resolution" in value:
-        #     Minute_Resolution = int((re.findall('\d+',value)[0]))   
         if "param: parameters_3" in value:
             parameters = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))        
-        # if "param: parameters_3_R" in value:
-        #     parameters_R = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-        
-        
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -209,9 +189,6 @@ def URL_creation_h(Data_import):
     lat_ext = [lat_grid[bisect.bisect_left(lat_grid.tolist(),lat)-1], lat_grid[bisect.bisect_left(lat_grid,lat)]]  #here finds the 
     lon_ext = [lon_grid[bisect.bisect_left(lon_grid.tolist(),lon)-1], lon_grid[bisect.bisect_left(lon_grid,lon)]]
     
-    
-    # if Minute_Resolution:
-    #     parameters = parameters_R
 
     # generates a daily URL for each node of the square
     for ii in range(2):
@@ -718,7 +695,7 @@ def I_tilt_f(beta, I_tot, I_diff, ro_g, theta_z, theta_i):
 ### Define the function hourly_solar to obtain the hourly solar radiation on a tilted surface from daily GHI data
 
 def hourly_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
-    
+
     B = (day_year-1)*2*math.pi/365
     delta =  math.radians(23.45*(math.sin(math.radians((day_year+284)*360/365))))               #declination angle in radians
     phi = lat * math.pi/180
@@ -758,10 +735,9 @@ def hourly_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
     theta_z_list = []
     
     for hour_day in range(0,24):
-        clock_time = hour_day
+        clock_time = hour_day 
         t_s = clock_time - 4*(standard_lon - lon)/60 + EoT/60
         t_s_lst.append(t_s)                                                                               #solar time in hours
-        # print('t_s',t_s)
         omega = (math.pi/180)* 15 * (t_s - 12)  
         omega_lst.append(omega)                                                                                                      #hour angle
         r_d_lj = math.pi/24 * (math.cos(omega)-math.cos(omega_s))/(math.sin(omega_s) - omega_s * math.cos(omega_s))                                 #Liu-Jordan correlation for diffuse hourly irradiation
@@ -789,9 +765,87 @@ def hourly_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
             I_dir_lst.append(0)
         if math.cos(theta_z) < 0.1:
            theta_i = math.pi/2
-        I_tilt.append(I_tilt_f(beta, I_tot, I_diff, ro_g, theta_z, theta_i))
         
+        I_tilt.append(I_tilt_f(beta, I_tot, I_diff, ro_g, theta_z, theta_i))
     return I_tilt
+
+### In case of Minute resolution
+def minute_solar(H_day,lat,lon, standard_lon, day_year,tilt, azimuth, albedo):
+
+    B = (day_year-1)*2*math.pi/365
+    delta =  math.radians(23.45*(math.sin(math.radians((day_year+284)*360/365))))               #declination angle in radians
+    phi = lat * math.pi/180
+    beta = tilt * math.pi/180
+    gamma = azimuth*math.pi/180                                              
+    
+    # Calculation of daily extraterrestrial irradiation 
+    if (-math.tan(phi)*math.tan(delta))>1:
+        omega_s = 0.001
+    elif (-math.tan(phi)*math.tan(delta))<-1:
+        omega_s = math.pi
+    else:
+        omega_s = math.acos((-math.tan(phi)*math.tan(delta)))                                                                            #sunset hour angle
+    E_0 = 1.000110 + 0.034221 * math.cos(B) + 0.001280*math.sin(B) + 0.000719*math.cos(2*B) + 0.000077*math.sin(2*B)                     #ratio between average sun-earth distance and distance in day day_year (Iqbal correlation)
+    G_0n = 1.367*E_0                                                                                                                     #extraterrestrial irradiance [kW/m^2] incident on a normal surface in the day day_year
+    H_extra = (24/math.pi) * G_0n * (math.cos(phi) * math.cos(delta) * math.sin(omega_s) + omega_s * math.sin(phi) * math.sin(delta))    #extraterr. daily irradiation on a normal surface [kWh/m^2]
+    K_T = H_day/H_extra                                                                                                                  #daily clearness index
+    
+    # Calculation of diffuse daily irradiation with Erbs correlation
+
+    K_diff = erbs_corr(omega_s,K_T)
+    H_diff = K_diff * H_day                                                                                                              #daily diffuse irradiation on a normal surface
+    
+    # Calculation of diffuse and total hourly irradiation with LJ and CPR correlation 
+
+    EoT = 229.2*(0.000075+0.001868*math.cos(B)-0.032077*math.sin(B)-0.014615*math.cos(2*B)-0.04089*math.sin(2*B))                        #equation of time [min]
+    a_r= 0.409 + 0.5016 * math.sin(omega_s - math.pi/3)
+    b_r= 0.6609 - 0.4767 * math.sin(omega_s - math.pi/3)
+    I_tilt = []
+    I_tot_lst = []
+    I_dir_lst = []
+    I_diff_lst = []
+    r_d_CBR_lst = []
+    t_s_lst = []
+    omega_lst = []
+    ro_g = albedo
+    theta_z_list = []
+    theta_i_list = []
+    
+    for hour_day in range(0,24):
+        for minute_hour in range(60):
+            clock_time = hour_day + minute_hour/60
+            t_s = clock_time - 4*(standard_lon - lon)/60 + EoT/60
+            t_s_lst.append(t_s)                                                                               #solar time in hours
+            omega = (math.pi/180)* 15 * (t_s - 12)  
+            omega_lst.append(omega)                                                                                                      #hour angle
+            r_d_lj = math.pi/1440 * (math.cos(omega)-math.cos(omega_s))/(math.sin(omega_s) - omega_s * math.cos(omega_s))                                 #Liu-Jordan correlation for diffuse hourly irradiation
+            r_d_CBR = (a_r + b_r * math.cos(omega)) * r_d_lj  
+            r_d_CBR_lst.append(r_d_CBR)                                                                               #Collares-Pereira-Rabl correlation for total hourly irradiation
+            if r_d_lj < 0:
+                I_diff = 0
+            else:
+                I_diff = r_d_lj * H_diff                                                                                                                    #diffuse hourly irradiation
+            if r_d_CBR>0:
+               I_tot = r_d_CBR * H_day                                                                          #total hourly irradiation
+               if I_tot - I_diff <0:
+                   I_tot = I_diff
+            else:
+                I_tot = 0
+            theta_z = abs(math.acos(math.cos(phi) * math.cos(delta)*math.cos(omega)+ math.sin(phi)*math.sin(delta)))                                    #zenith angle
+            theta_z_list.append(theta_z)
+            gamma_s = np.sign(omega) * abs((math.acos((math.cos(theta_z) * math.sin(phi) - math.sin(delta))/(math.sin(theta_z) * math.cos(phi)))))  #solar azimuth angle
+            theta_i = math.acos(math.cos(theta_z) * math.cos(beta) + math.sin(theta_z) *math.sin(beta) * math.cos(gamma_s -  gamma))                  #angle of incidence
+            theta_i_list.append(theta_i)
+            I_tot_lst.append(I_tot)
+            I_diff_lst.append(I_diff)
+            if I_tot-I_diff>0:
+                I_dir_lst.append(I_tot-I_diff)
+            else:
+                I_dir_lst.append(0)
+            if math.cos(theta_z) < 0.1:
+               theta_i = math.pi/2
+            
+    return theta_z_list, theta_i_list, I_tot_lst, I_dir_lst
 
 ### Calculation of daily extraterrestrial irradiation
 
@@ -924,10 +978,26 @@ def RE_supply():
     (power_curve, surface_area, rot_height,drivetrain_efficiency, data1, df) = wind_parameters(data_import)
     
 ### Find the vector of hourly irradiation on a tilted surface for all days of the year [W/m^2 h] and K_T for power calculation
-    
+
     print("Calculating the solar PV production in the typical year... \n")    
     if Minute_Resolution:
-        I_tilt = Solar_Model(param_typical_daily[0],param_typical_hourly[0],lat,lon, standard_lon, tilt, azim, ro_ground)   #hourly irradiation [kWh/m^2] on tilted surface
+        theta_z_list = []       
+        theta_i_list = []
+        I_tot_lst = []
+        I_dir_lst = []
+        
+        day = 1
+        for month in range(len(param_typical_daily[0])):
+            for day_year in range(len(param_typical_hourly[0][month])):                     
+                (theta_z, theta_i, I_tot, I_dir) = minute_solar(param_typical_daily[0][month][day_year],lat,lon, standard_lon, day,tilt, azim, ro_ground)
+                theta_z_list.append(theta_z)
+                theta_i_list.append(theta_i)
+                I_tot_lst.append(I_tot)
+                I_dir_lst.append(I_dir)
+                day = day + 1
+        
+        I_tilt = Solar_Model(param_typical_daily[0], param_typical_hourly[0], lat, lon, tilt, ro_ground, theta_z_list, theta_i_list, I_tot_lst, I_dir_lst)  #hourly irradiation [kWh/m^2] on tilted surface
+    
     else: 
         I_tilt = [[] for i in range(len(param_typical_daily[0]))]        #[KWh/m^2]
         day = 1
