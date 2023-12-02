@@ -1,17 +1,8 @@
 from RE_calculation import *
 
 from datetime import datetime, timedelta
-import numpy as np
-import pandas as pd
-# from tabulate import tabulate
-from scipy import signal
-import csv
-import os
-import json
+from scipy import signal 
 import requests
-import csv
-# import statistics 
-
 from collections import defaultdict
 import time, sys, concurrent.futures, urllib.request, urllib.parse, urllib.error    
 import pandas as pd, math, numpy as np, re, bisect, json, operator, copy, matplotlib.pyplot as plt
@@ -19,18 +10,15 @@ import pandas as pd, math, numpy as np, re, bisect, json, operator, copy, matplo
 #Full battery model for MGPy integration
 
 def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albedo, theta_z, theta_i, I_tot, I_dir):
-
-    print('Starting Solar Model to calculate minute solar irradiance')
     
     #%% DATA from NASA POWER
     '''Download data from NASA POWER for solar minute model'''
 
-    locations = [(-11.33,30.21)]  # lat/lon
+    locations = [(lat,lon)]  # lat/lon
     
     output = r""
-    base_url1 = r"https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=WS10M,PS,CLOUD_AMT&community=SB&longitude=30.21&latitude=-11.33&start=20120101&end=20161231&format=JSON"
-    
-    base_url2 = r"https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=WS10M,PS,CLOUD_AMT&community=SB&longitude=30.21&latitude=-11.33&start=20170101&end=20211231&format=JSON"
+    base_url1 = r"https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=WS10M,PS,CLOUD_AMT&community=SB&longitude="+str(lon)+"&latitude="+str(lat)+"&start=20120101&end=20161231&format=JSON"
+    base_url2 = r"https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=WS10M,PS,CLOUD_AMT&community=SB&longitude="+str(lon)+"&latitude="+str(lat)+"&start=20170101&end=20211231&format=JSON"
     
     for latitude, longitude in locations:
         api_request_url1 = base_url1.format(longitude=longitude, latitude=latitude)
@@ -104,13 +92,9 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albed
             CLOUD_AMT.append(string_split2[i])
     
     
-    #%% SettingsForSIG
+    #%% Settings
     u_range = 60
     num_of_options = 1000
-    
-    #%% USER_DEFINED_VARIABLES 
-    start_day = '01012019'
-    end_day = '01012020'
     panel_pitch = 0
     panel_azimuth = 0
     
@@ -220,8 +204,7 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albed
     pressure_range = int((np.max(pressure) - np.min(pressure)) +1)
     
     #%% ConstructMarkovChains import 
-    print('Constructing Markov transition matrices')
-    
+
     seasons_for_markov = np.zeros(len(cloud_amount))
     markov_case = np.zeros(365*24)
     springlp = np.zeros((cloud_amount_range,cloud_amount_range))
@@ -308,9 +291,7 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albed
     obsv_autumnhp = int(np.sum(autumnhp))
     obsv_winterhp = int(np.sum(winterhp))
     report = np.array([[obsv_springlp],[obsv_summerlp],[obsv_autumnlp],[obsv_winterlp],[obsv_springhp],[obsv_summerhp],[obsv_autumnhp],[obsv_winterhp]])
-    if np.amin(report) < 250:
-        print(np.array(['WARNING: too few observations - potentially inaccurate markov chains',1]))
-    
+
     hours_for_markov = days #this is from the original code but doesn't make any sense, try with hours and check the results
     seasons_before_6am = []; cloud_amount_before_6am = []
     for i in range(len(hours_for_markov)):
@@ -502,8 +483,7 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albed
     sun_obscured = np.concatenate((coverage_bin_1,coverage_bin_2,coverage_bin_3,coverage_bin_4,coverage_bin_5,coverage_bin_6,coverage_bin_7,coverage_bin_8,coverage_bin_9))
     
     #%% DeriveCloudCover
-    print('Generating synthetic cloud cover')
-    
+
     previous_cloud_amount = np.ceil(np.random.rand() * cloud_amount_max) - cloud_amount_min + 1; previous_cloud_amount = previous_cloud_amount.astype(int)
     previous_wind_speed = np.ceil(np.random.rand() * wind_speed_max) - wind_speed_min + 1; previous_wind_speed = previous_wind_speed.astype(int)
     pressure_start = int(np.round(pressure_avg)) - pressure_min + 1; pressure_start = pressure_start.astype(int)
@@ -688,82 +668,87 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albed
             I_dir_lst.append(I_dir[d][m])
            
     #%% ClearSkyIndices_SIG 
-    print('Probabilistically deriving clear-sky irradiance using SIG method')
-    
-    kcMinutely = np.zeros(len(sun_obscurred_sim))
-    resolution = 6
-    shift_factor = int(t_res / resolution)
-    obscured_factored = np.zeros(len(hours) * shift_factor)
-    okta_factored = np.zeros(len(hours) * shift_factor)
-    for i in range(0,len(cloud_amount_sim)):
-        okta_factored[i * shift_factor - (shift_factor - 1):i * shift_factor+1] = cloud_amount_sim[i]
-    
-    obscured_min = np.zeros(len(hours) * t_res)
-    not_obscured_min = np.zeros(len(hours) * t_res)
-    okta_factored = okta_factored.astype(int)
-    
-    for i in range(0,len(obscured_factored)):
+
+    trial_X = [[] for x in range(2)]
+    for x in range(len(trial_X)):
+        kcMinutely = np.zeros(len(sun_obscurred_sim))
+        resolution = 6
+        shift_factor = int(t_res / resolution)
+        obscured_factored = np.zeros(len(hours) * shift_factor)
+        okta_factored = np.zeros(len(hours) * shift_factor)
+        for i in range(0,len(cloud_amount_sim)):
+            okta_factored[i * shift_factor - (shift_factor - 1):i * shift_factor+1] = cloud_amount_sim[i]
         
-        if okta_factored[i] <= 6:
-            obscured_factored[i] = np.random.normal(0.6784, 0.2046, size = 1)
-        if okta_factored[i] == 7:
-            obscured_factored[i] = np.random.weibull(0.557736, size = 1)
-        if okta_factored[i] >= 8:
-            obscured_factored[i] = np.random.gamma(3.5624, scale = int(0.08668), size = 1)
-    
-    print('   -extracting kc values from okta-based distributions')
-    for i in range(len(obscured_factored)):
-        if obscured_factored[i] > 1:
-            obscured_factored[i] = np.random.gamma(3.5624, scale = int(0.08668), size = 1)
-    
-    for i in range(0,len(obscured_factored)-1):
-        obscured_min[i*resolution:(i+1)*resolution] = np.linspace(obscured_factored[i],obscured_factored[i + 1],resolution)
-    
-    not_obscured = np.random.normal(0.99,0.08, size = num_of_days)
-    
-    for i in range(len(kcMinutely)):
+        obscured_min = np.zeros(len(hours) * t_res)
+        not_obscured_min = np.zeros(len(hours) * t_res)
+        okta_factored = okta_factored.astype(int)
         
-        if sun_obscurred_sim[i] == 1:
-            kcMinutely[i] = obscured_min[i]
-            kcMinutely[i] = np.multiply(kcMinutely[i], np.random.normal(1 , (0.01 + 0.003 * cloud_amount_1min_sim[i])))
+        for i in range(0,len(obscured_factored)):
+            
+            if okta_factored[i] <= 6:
+                obscured_factored[i] = np.random.normal(0.6784, 0.2046, size = 1)
+            if okta_factored[i] == 7:
+                obscured_factored[i] = np.random.weibull(0.557736, size = 1)
+            if okta_factored[i] >= 8:
+                obscured_factored[i] = np.random.gamma(3.5624, scale = int(0.08668), size = 1)
         
-        if sun_obscurred_sim[i] == 0:
-            kcMinutely[i] = not_obscured_min[i]
-            kcMinutely[i] = not_obscured[int(np.ceil((i/1440))-1)]
-            kcMinutely[i] = np.multiply(kcMinutely[i],np.random.normal(1 , (0.001 + 0.0015 * cloud_amount_1min_sim[i])))
-    
-    
-    for i in range(0,len(kcMinutely)):
-        kcmax = 27.21 * np.exp(- 114 * np.cos(np.pi/180*theta_z_list[i])) + 1.665 * np.exp(- 4.494 * np.cos(np.pi/180*theta_z_list[i])) + 1.08
-        if kcMinutely[i] > kcmax:
-            kcMinutely[i] = np.random.weibull(0.3)
-        if kcMinutely[i] < 0.01:
-            kcMinutely[i] = 0.01
-    
-    print('Applying cloud edge enhancement events')
-    chance = 0.4
-    
-    for i in range(0,len(kcMinutely)):
-        a = np.random.rand()
-        if sun_obscurred_sim[i-1] - sun_obscurred_sim[i] == 1:
-            if a > chance:
-                kcMinutely[i] = kcMinutely[i] * np.random.normal(1.05,0.01, size = 1)
-        else:
-            if sun_obscurred_sim[i-1] - sun_obscurred_sim[i] == - 1:
+        for i in range(len(obscured_factored)):
+            if obscured_factored[i] > 1:
+                obscured_factored[i] = np.random.gamma(3.5624, scale = int(0.08668), size = 1)
+        
+        for i in range(0,len(obscured_factored)-1):
+            obscured_min[i*resolution:(i+1)*resolution] = np.linspace(obscured_factored[i],obscured_factored[i + 1],resolution)
+        
+        not_obscured = np.random.normal(0.99,0.08, size = num_of_days)
+        
+        for i in range(len(kcMinutely)):
+            
+            if sun_obscurred_sim[i] == 1:
+                kcMinutely[i] = obscured_min[i]
+                kcMinutely[i] = np.multiply(kcMinutely[i], np.random.normal(1 , (0.01 + 0.003 * cloud_amount_1min_sim[i])))
+            
+            if sun_obscurred_sim[i] == 0:
+                kcMinutely[i] = not_obscured_min[i]
+                kcMinutely[i] = not_obscured[int(np.ceil((i/1440))-1)]
+                kcMinutely[i] = np.multiply(kcMinutely[i],np.random.normal(1 , (0.001 + 0.0015 * cloud_amount_1min_sim[i])))
+        
+        for i in range(0,len(kcMinutely)):
+            kcmax = 27.21 * np.exp(- 114 * np.cos(np.pi/180*theta_z_list[i])) + 1.665 * np.exp(- 4.494 * np.cos(np.pi/180*theta_z_list[i])) + 1.08
+            if kcMinutely[i] > kcmax:
+                kcMinutely[i] = np.random.weibull(0.3)
+            if kcMinutely[i] < 0.01:
+                kcMinutely[i] = 0.01
+        
+        chance = 0.4
+        
+        for i in range(0,len(kcMinutely)):
+            a = np.random.rand()
+            if sun_obscurred_sim[i-1] - sun_obscurred_sim[i] == 1:
                 if a > chance:
-                    kcMinutely[i-1] = kcMinutely[i - 1] * np.random.normal(1.05,0.01, size = 1)
-                    
-        if sun_obscurred_sim[i-2] - sun_obscurred_sim[i-1] == 1:
-            if a > chance:
-                kcMinutely[i] = kcMinutely[i] * np.random.normal(1.025,0.01, size = 1)
-        else:
-            if sun_obscurred_sim[i-2] - sun_obscurred_sim[i-1] == - 1:
+                    kcMinutely[i] = kcMinutely[i] * np.random.normal(1.05,0.01, size = 1)
+            else:
+                if sun_obscurred_sim[i-1] - sun_obscurred_sim[i] == - 1:
+                    if a > chance:
+                        kcMinutely[i-1] = kcMinutely[i - 1] * np.random.normal(1.05,0.01, size = 1)
+                        
+            if sun_obscurred_sim[i-2] - sun_obscurred_sim[i-1] == 1:
                 if a > chance:
                     kcMinutely[i] = kcMinutely[i] * np.random.normal(1.025,0.01, size = 1)
+            else:
+                if sun_obscurred_sim[i-2] - sun_obscurred_sim[i-1] == - 1:
+                    if a > chance:
+                        kcMinutely[i] = kcMinutely[i] * np.random.normal(1.025,0.01, size = 1)
+    
+    
+        trial_X[x] = kcMinutely
+    
+    kcMinutely = np.zeros(len(sun_obscurred_sim))
+    for i in range(len(kcMinutely)):
+        kcMinutely[i] = (trial_X[0][i] + trial_X[1][i])/2
+
     
     #%% CombineClearSkyIndicesAndIrradianceComponents 
-    print('Implementing clear-sky irradiance using Muller and Trentmann (2010)')
-    
+
     I_tot = np.zeros(len(kcMinutely))
     direct_horizontal = np.zeros(len(kcMinutely))
     I_diff = np.zeros(len(kcMinutely))

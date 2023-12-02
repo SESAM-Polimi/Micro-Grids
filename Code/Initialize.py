@@ -142,7 +142,6 @@ def Initialize_Discount_Rate(model):
 #%% This section imports the multi-year Demand and Renewable-Energy output and creates a Multi-indexed DataFrame for it
 
 if RE_Supply_Calculation:
-
     Renewable_Energy = RE_supply()
 else:
     Renewable_Energy = pd.read_csv('Inputs/RES_Time_Series.csv', delimiter=';', decimal=',', header=0)

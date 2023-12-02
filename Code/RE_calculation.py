@@ -582,8 +582,8 @@ def export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp):
         for day in range(0,len(energy_PV[months])):
             for hour in range(0,len(energy_PV[months][day])):
                 energy_PV_lst.append(energy_PV[months][day][hour])   
-    dataf = pd.concat([pd.DataFrame([ii for ii in range(1,len(energy_WT)+1)]), pd.DataFrame(energy_PV_lst), pd.DataFrame(energy_WT)], axis = 1)
-    dataf = dataf.set_axis([None,1,2], axis=1)
+    dataf = pd.concat([pd.DataFrame(energy_PV_lst), pd.DataFrame(energy_WT)], axis = 1)
+    dataf = dataf.set_axis([1,2], axis=1)
     
     PlotFormat = 'png'                  # Desired extension of the saved file (Valid formats: png, svg, pdf)
     PlotResolution = 1000                # Plot resolution in dpi (useful only for .png files, .svg and .pdf output a vector plot)
@@ -962,6 +962,8 @@ def RE_supply():
     for value in data_import:
         if "param: Minute_Resolution" in value:
             Minute_Resolution = int((re.findall('\d+',value)[0]))
+        if "param: Periods" in value:
+            n_periods = int((re.findall('\d+',value)[0]))
     
     
 ### Calculate the typical year using the daily parameters 
@@ -981,6 +983,16 @@ def RE_supply():
 
     print("Calculating the solar PV production in the typical year... \n")    
     if Minute_Resolution:
+        
+        if n_periods != 525600:
+            print('###########################################################')
+            print('INPUT NOT VALID: if Periods NOT equal to 525600, Minute Resolution must be NOT activated (= 0)!')
+            print('Please, edit file "Parameters.dat" and try again')
+            print('ABORT')
+            print('###########################################################')
+            sys.exit() 
+
+        print("Calculating the solar minute model ... \n") 
         theta_z_list = []       
         theta_i_list = []
         I_tot_lst = []
@@ -1040,12 +1052,21 @@ def RE_supply():
     U_rotor_lst, wind_direction_lst, ro_air_lst = wind_lst(WS_rotor, param_typical_hourly, ro_air)
     (energy_WT, Cp) = P_turb(power_curve, U_rotor_lst, ro_air_lst, surface_area,drivetrain_efficiency)            #hourly energy production of 1 wind turbine [kWh]
     
+    if Minute_Resolution:
+        energy_WT_minute = []
+        for i in range(len(energy_WT)):
+            for x in range(60):
+                energy_WT_minute.append(energy_WT[i]/60)
+
     print("Completed\n ")            
                
 # Report results on excel sheet 'RES_supply' and export windrose and plots
 
     print('Plotting and exporting time series to Generation.xlsx... \n')
-    dataf = export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp) 
+    if Minute_Resolution:
+        dataf = export(energy_PV, U_rotor_lst, energy_WT_minute, wind_direction_lst, Cp) 
+    else:
+        dataf = export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp) 
     filename = 'Inputs/RES_Time_Series.csv'
     book = pd.DataFrame(dataf)
     book.to_csv(filename, sep=';', decimal=',', quotechar = ' ', index= True, header = True)

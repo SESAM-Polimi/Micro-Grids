@@ -57,7 +57,7 @@ param: hospital_5:= '0';							    # number of hospitals of type 5
 # Model General Settings
 #-------------------------------------------------------------------------------------------------------------
 
-param: Periods := 8760;                                   # Periods considered in one year (525600m/y in the example)
+param: Periods := 525600;                                   # Periods considered in one year (525600m/y in the example)
 param: Years := 1;                                          # Total duration of the project
 param: Step_Duration := 1;                                  # Duration (in years) of each investment decision step in which the project lifetime will be split
 param: Min_Last_Step_Duration := 1;                         # Minimum duration (in years) of the last investment decision step, in case of non-homogeneous divisions of the project lifetime 
@@ -96,7 +96,7 @@ param: Grid_Availability_Simulation := 0;                   # Options: 1 to simu
 param: Grid_Connection_Type := 1;	                        # Options: 2 for sell/purchase power with the national grid, 1 for purchase only
 param: WACC_Calculation := 0;                               # Options: 1 to select Weighted Average Cost of Capital calculation, 0 otherwise
 
-param: Minute_Resolution := 1;                              # Options: just in the case the model is being run for 1 minute
+param: Minute_Resolution := 1;                              # Options: To use solar minute model in RES calculation and calculate minute wind production (estimation)
 
 param: Model_Components := 0;	                            # Options: 0 for batteries and generators, 1 for batteries only, 2 for generators only
 
