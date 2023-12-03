@@ -81,16 +81,8 @@ def URL_creation_d(Data_import):
             loc_id = '/' + value[value.index('=')+1:value.index(';')].replace(' ','')
         if "param: parameters_1" in value:
             parameters_1 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-        
-        
-        # if "param: Minute_Resolution" in value:
-        #     Minute_Resolution = int((re.findall('\d+',value)[0]))
-        # if "param: parameters_2_R" in value:
-        #     parameters_2_R = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
         if "param: parameters_2" in value:
             parameters_2 = '?parameters=' + (value[value.index('=')+1:value.index(';')].replace(' ',''))
-
-
         if "param: date_start" in value:
             date_start = (('&start=' + str(value[value.index('=')+1:value.index(';')])).replace(' ','')).replace("'","")
         if "param: date_end" in value:
@@ -132,9 +124,6 @@ def URL_creation_d(Data_import):
     lat_ext_2 = [lat_grid_2[bisect.bisect_left(lat_grid_2.tolist(),lat)-1], lat_grid_2[bisect.bisect_left(lat_grid_2,lat)]]  #here finds the 
     
     lon_ext_2 = [lon_grid_2[bisect.bisect_left(lon_grid_2.tolist(),lon)-1], lon_grid_2[bisect.bisect_left(lon_grid_2,lon)]]
-    
-    # if Minute_Resolution:
-    #     parameters_2 = parameters_2_R
 
     '''Generates a daily URL for each node of the square'''
     for ii in range(2):
@@ -302,12 +291,6 @@ def data_2D_interpolation(jsdata, date_start, date_end, lat, lon,lat_ext_1, lon_
     param_daily_list = []
     param_daily_str_1 = ['ALLSKY_SFC_SW_DWN'] 
     param_daily_str_2 = ['T2MWET','T2M','WS50M']
-    
-    # param_daily_str_2_R = ['T2MWET, T2M, WS50M, WS10M, PS, CLOUD_AMT']
-    
-    # if Minute_Resolution:
-    #     param_daily_str_2 = param_daily_str_2_R
-    #     print(param_daily_str_2)
     
     for jsdata_d_1 in jsdata_daily_1:
         pydata_d = json.loads(jsdata_d_1)    
@@ -983,15 +966,6 @@ def RE_supply():
 
     print("Calculating the solar PV production in the typical year... \n")    
     if Minute_Resolution:
-        
-        if n_periods != 525600:
-            print('###########################################################')
-            print('INPUT NOT VALID: if Periods NOT equal to 525600, Minute Resolution must be NOT activated (= 0)!')
-            print('Please, edit file "Parameters.dat" and try again')
-            print('ABORT')
-            print('###########################################################')
-            sys.exit() 
-
         print("Calculating the solar minute model ... \n") 
         theta_z_list = []       
         theta_i_list = []
@@ -1009,7 +983,6 @@ def RE_supply():
                 day = day + 1
         
         I_tilt = Solar_Model(param_typical_daily[0], param_typical_hourly[0], lat, lon, tilt, ro_ground, theta_z_list, theta_i_list, I_tot_lst, I_dir_lst)  #hourly irradiation [kWh/m^2] on tilted surface
-    
     else: 
         I_tilt = [[] for i in range(len(param_typical_daily[0]))]        #[KWh/m^2]
         day = 1
@@ -1035,11 +1008,13 @@ def RE_supply():
                     energy_PV[ii][jj].append((I_tilt[ii][jj][mm])* nom_power * (1+(k_T/100)*(T_cell[ii][jj][mm]-25)))                #[Wh/module]
                     if (mm + 1) % 60 == 0:
                         kk +=1
+    
             else:
                 for kk in range(len(T_amb[ii][jj])): #hour
                     T_cell[ii][jj].append(T_amb[ii][jj][kk] + ((NMOT - T_NMOT)/G_NMOT)*I_tilt[ii][jj][kk]*1000)          #find the vector of hourly average cell T using T2M
                     energy_PV[ii][jj].append((I_tilt[ii][jj][kk])* nom_power * (1+(k_T/100)*(T_cell[ii][jj][kk]-25)))                #[Wh/module]
 
+    print(T_cell[1][14])
     print("Completed\n")  
     
 ### Wind turbine electricity production calculation

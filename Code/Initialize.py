@@ -17,7 +17,7 @@ Based on the original model by:
 
 
 import pandas as pd, numpy as np
-import re
+import re, sys
 from RE_calculation import RE_supply
 from Demand import demand_generation
 from Grid_Availability import grid_availability as grid_avail
@@ -142,11 +142,26 @@ def Initialize_Discount_Rate(model):
 #%% This section imports the multi-year Demand and Renewable-Energy output and creates a Multi-indexed DataFrame for it
 
 if RE_Supply_Calculation:
+    if Minute_Resolution:
+        if n_periods != 525600:
+            print('###########################################################')
+            print('INPUT NOT VALID: if Periods NOT equal to 525600, Minute Resolution must be NOT activated (= 0)!')
+            print('Please, edit file "Parameters.dat" and try again')
+            print('ABORT')
+            print('###########################################################')
+            sys.exit() 
     Renewable_Energy = RE_supply()
 else:
     Renewable_Energy = pd.read_csv('Inputs/RES_Time_Series.csv', delimiter=';', decimal=',', header=0)
 
 if Demand_Profile_Generation:
+    if Minute_Resolution:
+        print('###########################################################')
+        print('INPUT NOT VALID: Demand profile generation does not output minute resolution!')
+        print('Please, edit file "Parameters.dat" and try again')
+        print('ABORT')
+        print('###########################################################')
+        sys.exit() 
     Demand = demand_generation()
 
 Demand = pd.read_csv('Inputs/Demand.csv', delimiter=';', decimal=',', header=0)
@@ -246,48 +261,50 @@ def Initialize_Generator_Start_Cost(model,g,y):
 def Initialize_Generator_Marginal_Cost_milp(model,g,y):
     return ((model.Generator_Marginal_Cost[g,y]*model.Generator_Nominal_Capacity_milp[g])-model.Generator_Start_Cost[g,y])/model.Generator_Nominal_Capacity_milp[g] 
 
-"Grid Connection"
-if Grid_Availability_Simulation:
-    grid_avail(average_n_outages, average_outage_duration, n_years, year_grid_connection)
 
-if Grid_Connection:
-    availability = pd.read_csv('Inputs/Grid Availability.csv', delimiter=';', header=0)
-    # availability_excel = pd.read_excel('Inputs/Generation.xlsx', sheet_name = "Grid Availability")
-else:
-    # Create an empty DataFrame for non-grid connection case, same as before
-    availability = pd.concat([pd.DataFrame(np.zeros(n_years)).T for _ in range(8760)])
-    availability.index = pd.Index(range(8760))
-    availability.columns = range(1, n_years + 1)
-
-# Create grid_availability Series
-grid_availability_Series = pd.Series()
-for i in range(1, n_years * n_scenarios + 1):
-    if Grid_Connection and Grid_Availability_Simulation: dum = availability[str(i)]
-    elif Grid_Connection and Grid_Availability_Simulation == 0: dum = availability[str(i)]
-    else: dum = availability[i]
-    grid_availability_Series = pd.concat([grid_availability_Series, dum])
-
-grid_availability = pd.DataFrame(grid_availability_Series)
-
-# Create a MultiIndex
-frame = [scenario, year, period]
-index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
-grid_availability.index = index
-
-
-# Create grid_availability_2 DataFrame
-grid_availability_2 = pd.DataFrame()
-for s in scenario:
-    grid_availability_Series_2 = pd.Series()
-    for y in year:
-        if Grid_Connection: dum_2 = availability[str((s - 1) * n_years + y)]
-        else: dum_2 = availability[(s - 1) * n_years + y]
-        grid_availability_Series_2 = pd.concat([grid_availability_Series_2, dum_2])
-    grid_availability_2[s] = grid_availability_Series_2
-
-# Create a RangeIndex
-index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
-grid_availability_2.index = index_2
+if n_periods == 8760:
+    "Grid Connection"
+    if Grid_Availability_Simulation:
+        grid_avail(average_n_outages, average_outage_duration, n_years, year_grid_connection)
+    
+    if Grid_Connection:
+        availability = pd.read_csv('Inputs/Grid Availability.csv', delimiter=';', header=0)
+        # availability_excel = pd.read_excel('Inputs/Generation.xlsx', sheet_name = "Grid Availability")
+    else:
+        # Create an empty DataFrame for non-grid connection case, same as before
+        availability = pd.concat([pd.DataFrame(np.zeros(n_years)).T for _ in range(8760)])
+        availability.index = pd.Index(range(8760))
+        availability.columns = range(1, n_years + 1)
+    
+    # Create grid_availability Series
+    grid_availability_Series = pd.Series()
+    for i in range(1, n_years * n_scenarios + 1):
+        if Grid_Connection and Grid_Availability_Simulation: dum = availability[str(i)]
+        elif Grid_Connection and Grid_Availability_Simulation == 0: dum = availability[str(i)]
+        else: dum = availability[i]
+        grid_availability_Series = pd.concat([grid_availability_Series, dum])
+    
+    grid_availability = pd.DataFrame(grid_availability_Series)
+    
+    # Create a MultiIndex
+    frame = [scenario, year, period]
+    index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
+    grid_availability.index = index
+    
+    
+    # Create grid_availability_2 DataFrame
+    grid_availability_2 = pd.DataFrame()
+    for s in scenario:
+        grid_availability_Series_2 = pd.Series()
+        for y in year:
+            if Grid_Connection: dum_2 = availability[str((s - 1) * n_years + y)]
+            else: dum_2 = availability[(s - 1) * n_years + y]
+            grid_availability_Series_2 = pd.concat([grid_availability_Series_2, dum_2])
+        grid_availability_2[s] = grid_availability_Series_2
+    
+    # Create a RangeIndex
+    index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
+    grid_availability_2.index = index_2
 
 def Initialize_Grid_Availability(model, s, y, t): 
     return float(grid_availability[0][(s,y,t)])

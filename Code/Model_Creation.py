@@ -108,6 +108,7 @@ def Model_Creation(model):
     model.Solver                            = Param(within=Binary)                                    # 1 for Gurobi solver, 0 for default
     model.Model_Components                  = Param(within=NonNegativeIntegers)                       # 0 for batteries and generators, 1 for batteries only, 2 for generators only
     model.WACC_Calculation                  = Param(within=Binary)                                    # 1 to select Weighted Average Cost of Capital calculation, 0 otherwise
+    model.Minute_Resolution                 = Param(within=Binary)                                    # 1 to use solar minute model in RES calculation and calculate minute wind production (estimation), 0 otherwise
 
     "Sets"
     model.periods                           = RangeSet(1, model.Periods)                                  # Creation of a set from 1 to the number of periods in each year
