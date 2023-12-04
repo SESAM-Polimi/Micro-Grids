@@ -350,6 +350,7 @@ def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albed
             current = pressure_transitions[i,1] - pressure_min 
             pressure_markov[int(previous),int(current)]= pressure_markov[int(previous),int(current)] + 1
     
+    
     springhp_prob = np.nan_to_num(np.divide(springhp,np.array(np.sum(springhp, axis=1)).reshape(len(springhp),1))); cum_springhp_prob = np.cumsum(springhp_prob, axis=1)
     summerhp_prob = np.nan_to_num(np.divide(summerhp,np.array(np.sum(summerhp, axis=1)).reshape(len(summerhp),1))); cum_summerhp_prob = np.cumsum(summerhp_prob, axis=1)
     autumnhp_prob = np.nan_to_num(np.divide(autumnhp,np.array(np.sum(autumnhp, axis=1)).reshape(len(autumnhp),1))); cum_autumnhp_prob = np.cumsum(autumnhp_prob, axis=1)
