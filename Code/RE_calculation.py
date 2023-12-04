@@ -559,14 +559,25 @@ def typical_year_hourly(best_years, param_hourly_interp):
 
 ### Function to export results to excel file and produce windrose and plots
 
-def export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp):
+def export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp,T_cell,I_tilt):
     energy_PV_lst = [] 
+    T_cell_lst = []
+    I_tilt_lst = []
     for months in range(0,len(energy_PV)):
         for day in range(0,len(energy_PV[months])):
             for hour in range(0,len(energy_PV[months][day])):
                 energy_PV_lst.append(energy_PV[months][day][hour])   
-    dataf = pd.concat([pd.DataFrame(energy_PV_lst), pd.DataFrame(energy_WT)], axis = 1)
-    dataf = dataf.set_axis([1,2], axis=1)
+                T_cell_lst.append(T_cell[months][day][hour])
+                I_tilt_lst.append(I_tilt[months][day][hour])
+                
+    for i in range(len(energy_PV_lst)):
+        if energy_PV_lst[i] < 0:
+            if energy_PV_lst[i-1] > 0:
+                energy_PV_lst[i] = energy_PV_lst[i-1]
+                
+            
+    dataf = pd.concat([pd.DataFrame(energy_PV_lst), pd.DataFrame(energy_WT), pd.DataFrame(T_cell_lst), pd.DataFrame(I_tilt_lst)], axis = 1)
+    dataf = dataf.set_axis([1,2,'T_cell','I_tilt'], axis=1)
     
     PlotFormat = 'png'                  # Desired extension of the saved file (Valid formats: png, svg, pdf)
     PlotResolution = 1000                # Plot resolution in dpi (useful only for .png files, .svg and .pdf output a vector plot)
@@ -1014,7 +1025,6 @@ def RE_supply():
                     T_cell[ii][jj].append(T_amb[ii][jj][kk] + ((NMOT - T_NMOT)/G_NMOT)*I_tilt[ii][jj][kk]*1000)          #find the vector of hourly average cell T using T2M
                     energy_PV[ii][jj].append((I_tilt[ii][jj][kk])* nom_power * (1+(k_T/100)*(T_cell[ii][jj][kk]-25)))                #[Wh/module]
 
-    print(T_cell[1][14])
     print("Completed\n")  
     
 ### Wind turbine electricity production calculation
@@ -1039,7 +1049,7 @@ def RE_supply():
 
     print('Plotting and exporting time series to Generation.xlsx... \n')
     if Minute_Resolution:
-        dataf = export(energy_PV, U_rotor_lst, energy_WT_minute, wind_direction_lst, Cp) 
+        dataf = export(energy_PV, U_rotor_lst, energy_WT_minute, wind_direction_lst, Cp,T_cell,I_tilt) 
     else:
         dataf = export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp) 
     filename = 'Inputs/RES_Time_Series.csv'

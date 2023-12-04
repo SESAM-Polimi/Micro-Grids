@@ -6,8 +6,7 @@ import requests
 from collections import defaultdict
 import time, sys, concurrent.futures, urllib.request, urllib.parse, urllib.error    
 import pandas as pd, math, numpy as np, re, bisect, json, operator, copy, matplotlib.pyplot as plt
-    
-#Full battery model for MGPy integration
+
 
 def Solar_Model(param_typical_daily, param_typical_hourly, lat, lon, tilt, albedo, theta_z, theta_i, I_tot, I_dir):
     

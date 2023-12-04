@@ -218,8 +218,8 @@ def Model_Creation(model):
 
 # --- National Grid ---
 
-
     "Parameters of the National Grid"
+    
     model.Grid_Sold_El_Price                   = Param(within=NonNegativeReals)
     model.Grid_Purchased_El_Price              = Param(within=NonNegativeReals)
     model.Grid_Lifetime                        = Param(within=NonNegativeReals)
@@ -234,8 +234,8 @@ def Model_Creation(model):
     model.Grid_Average_Number_Outages          = Param(within=NonNegativeReals) 
     model.Grid_Average_Outage_Duration         = Param(within=NonNegativeReals)                
     model.National_Grid_Specific_CO2_emissions = Param(within=NonNegativeReals)  
-    
- 
+
+
     "Parameters of the electricity balance"                  
     model.Energy_Demand           = Param(model.scenarios, 
                                           model.years, 
