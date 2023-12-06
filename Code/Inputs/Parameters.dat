@@ -22,7 +22,7 @@ param: lat := '-11 33 56.4'; 						        # latitude  [-° -' -", N positive, S
 param: lon := '30 21 3.4'; 							# longitude [-° -' -", E positive, O negative]
 param: time_zone := +2;								# UTC time zone [-]
 
-param: nom_power := 300; 							# Module nominal power [W]	
+param: nom_power := 1000; 							# Module nominal power [W]	
 param: tilt := 10;								# tilt angle [°]
 param: azim := 180;								# azimuth angle [0° south facing]
 param: ro_ground := 0.2;							# ground reflectivity  [-]
@@ -57,7 +57,7 @@ param: hospital_5:= '0';							    # number of hospitals of type 5
 #-------------------------------------------------------------------------------------------------------------
 
 param: Periods := 8760;                                     # Periods considered in one year (8760h/y in the example)
-param: Years := 2;                                         # Total duration of the project
+param: Years := 1;                                         # Total duration of the project
 param: Step_Duration := 1;                                  # Duration (in years) of each investment decision step in which the project lifetime will be split
 param: Min_Last_Step_Duration := 1;                         # Minimum duration (in years) of the last investment decision step, in case of non-homogeneous divisions of the project lifetime 
 param: StartDate := '01/01/2023 00:00:00';                  # Start date of the project
@@ -66,7 +66,7 @@ param: Scenarios := 1;                                      # Number of scenario
 param: Scenario_Weight :=                                   # Occurrence probability of each scenario [-]
 1      1;
 
-param: Real_Discount_Rate := 0.2;                           # Real discount rate accounting also for inflation
+param: Real_Discount_Rate := 0.5;                           # Real discount rate accounting also for inflation
 param: Investment_Cost_Limit := 500000;                     # Upper limit to investment cost [USD] (considered only in case Optimization_Goal='Operation cost')
 
 # Optimization setup
