@@ -53,7 +53,7 @@ def data_import(data_demand):
 
 def demand_calculation():
     
-    data_demand = open("Inputs/Model_data.dat").readlines()
+    data_demand = open("Inputs/Parameters.dat").readlines()
     
     num_h_tier = []
     
@@ -115,10 +115,11 @@ def demand_calculation():
     
     #%% Export results to excel
 def excel_export(load,years):
+    # Setting new column names based on the number of years
+    load = load.set_axis(np.arange(1, years+1), axis=1)
     
-    load = load.set_axis(np.arange(1,years+1), axis=1, inplace=False)
-    
-    load.to_excel("Inputs/Demand.xlsx")
+    # Exporting the DataFrame to a CSV file
+    load.to_csv("Inputs/Demand.csv", sep=';', decimal=',', index=True)
 
 
 #%% Calculates and export the load demand  time series of households and services for 20 years to Demand.xlsx
@@ -133,7 +134,7 @@ def demand_generation():
     
     end = time.time()
     elapsed = end - start
-    load_tot = load_tot.set_axis(np.arange(1,years+1), axis=1, inplace=False)
+    load_tot = load_tot.set_axis(np.arange(1,years+1), axis=1)
     print('\n\nLoad demand calculation completed (overall time: ',round(elapsed,0),'s,', round(elapsed/60,1),' m)\n')
     return load_tot
 

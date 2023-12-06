@@ -71,8 +71,9 @@ def grid_availability(average_n_outages, average_outage_duration, project_lifeti
     '''
     #%% Make random sampling based on the obtained Weibull distributions and construct grid availability matrix
     if average_n_outages == 0 and average_outage_duration == 0:
-         grid_availability_lifetime = pd.concat([pd.DataFrame(np.zeros((8760,project_lifetime-grid_lifetime))), pd.DataFrame(np.ones((8760,grid_lifetime)))], axis = 1)
-         grid_availability_lifetime = grid_availability_lifetime.set_axis(range(1,project_lifetime+1), axis=1, inplace=False)
+        grid_availability_lifetime = pd.concat([pd.DataFrame(np.zeros((8760, project_lifetime - grid_lifetime))),
+                                                pd.DataFrame(np.ones((8760, grid_lifetime)))], axis=1)
+        grid_availability_lifetime = grid_availability_lifetime.set_axis(range(1, project_lifetime + 1), axis=1)
     else:
         rng = np.random.default_rng()
         OD_tot = grid_lifetime * average_n_outages * average_outage_duration/60 
@@ -145,7 +146,7 @@ def grid_availability(average_n_outages, average_outage_duration, project_lifeti
                 ff = 0
         
         grid_availability_lifetime = pd.concat([pd.DataFrame(np.zeros((8760,project_lifetime-grid_lifetime))), pd.DataFrame(grid_matrix)], axis = 1)
-        grid_availability_lifetime = grid_availability_lifetime.set_axis(range(1,project_lifetime+1), axis=1, inplace=False)
+        grid_availability_lifetime = grid_availability_lifetime.set_axis(range(1, project_lifetime + 1), axis=1)
     '''
     fig7 = plt.figure(dpi=1000)
     plt.plot(range(len(grid_matrix[:,0])), grid_matrix[:,0] , 'b.-', linewidth=0.1, markersize = 0.5)   
@@ -155,13 +156,10 @@ def grid_availability(average_n_outages, average_outage_duration, project_lifeti
     '''
     
     print("Calculation of Grid Availability Matrix for " + str(grid_lifetime) + " years of grid connection completed" )
-    filename = "Inputs/Generation.xlsx"
-    book = load_workbook(filename)
-    writer = pd.ExcelWriter(filename, engine='openpyxl') 
-    writer.book = book
-    writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
-    grid_availability_lifetime.to_excel(writer, sheet_name = 'Grid Availability', index=False, header = True, startrow = 0, startcol = 0)
-    writer.save()
+    
+    filename = "Inputs/Grid Availability.csv"
+
+    grid_availability_lifetime.to_csv(filename, index=False, sep=';')
     return 
     
     
