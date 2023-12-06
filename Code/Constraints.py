@@ -1933,24 +1933,84 @@ class Constraints_Brownfield_Milp():
         return model.Total_Revenues_Act [s] == sum(Revenues_Yearly[y-1]/((1+model.Discount_Rate)**y)  for y in model.years)
     
     def Battery_Replacement_Cost_Act(model,s):
-        Battery_cost_in = [0 for y in model.years]
-        Battery_cost_out = [0 for y in model.years]
-        Battery_Yearly_cost = [0 for y in model.years]    
-        for y in range(1,model.Years+1):    
-            Battery_cost_in[y-1] = sum(model.Battery_Inflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
-            Battery_cost_out[y-1] = sum(model.Battery_Outflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
-            Battery_Yearly_cost[y-1] = Battery_cost_in[y-1] + Battery_cost_out[y-1]
-        return model.Battery_Replacement_Cost_Act[s] == sum(Battery_Yearly_cost[y-1]/((1+model.Discount_Rate)**y) for y in model.years) 
+        if model.Battery_Degradation == 1 and model.Battery_Iterative_Replacement == 1:
+            upgrade_years_list = [1 for i in range(len(model.steps))]
+            s_dur = model.Step_Duration 
+            for i in range(1, len(model.steps)): 
+                upgrade_years_list[i] = upgrade_years_list[i-1] + s_dur  
+            yu_tuples_list = [[] for i in model.years]  
+            for y in model.years:      
+                for i in range(len(upgrade_years_list)-1):
+                    if y >= upgrade_years_list[i] and y < upgrade_years_list[i+1]:
+                        yu_tuples_list[y-1] = (y, model.steps[i+1])          
+                    elif y >= upgrade_years_list[-1]:
+                        yu_tuples_list[y-1] = (y, len(model.steps))            
+            tup_list = [[] for i in range(len(model.steps)-1)]  
+            for i in range(0, len(model.steps) - 1):
+                tup_list[i] = yu_tuples_list[model.Step_Duration*i + model.Step_Duration]    
+                 
+            Rep_Bat = (((model.Battery_Units[1]*model.Battery_Nominal_Capacity_milp)*(model.Battery_Specific_Investment_Cost-model.Battery_Specific_Electronic_Investment_Cost))
+                            + sum((((model.Battery_Units[ut] - model.Battery_Units[ut-1])*model.Battery_Nominal_Capacity_milp*(model.Battery_Specific_Investment_Cost-model.Battery_Specific_Electronic_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
+                            for (yt,ut) in tup_list))) 
+            Battery_Yearly_cost = [0 for y in model.years]    
+            for y in range(1,model.Years+1): 
+                if y == (model.Battery_Replacement_Year-1):    
+                    Battery_Yearly_cost[y-1] = Rep_Bat
+            return model.Battery_Replacement_Cost_Act[s] == sum(Battery_Yearly_cost[y-1]/((1+model.Discount_Rate)**y) for y in model.years) 
+        
+        if model.Battery_Degradation == 1 and model.Battery_Iterative_Replacement == 0:
+            return model.Battery_Replacement_Cost_Act[s] == 0 
+    
+        if model.Battery_Degradation == 0:
+            Battery_cost_in = [0 for y in model.years]
+            Battery_cost_out = [0 for y in model.years]
+            Battery_Yearly_cost = [0 for y in model.years]    
+            for y in range(1,model.Years+1):    
+                Battery_cost_in[y-1] = sum(model.Battery_Inflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
+                Battery_cost_out[y-1] = sum(model.Battery_Outflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
+                Battery_Yearly_cost[y-1] = Battery_cost_out[y-1] + Battery_cost_in[y-1]
+            return model.Battery_Replacement_Cost_Act[s] == sum(Battery_Yearly_cost[y-1]/((1+model.Discount_Rate)**y) for y in model.years) 
+    
         
     def Battery_Replacement_Cost_NonAct(model,s):
-        Battery_cost_in = [0 for y in model.years]
-        Battery_cost_out = [0 for y in model.years]
-        Battery_Yearly_cost = [0 for y in model.years]    
-        for y in range(1,model.Years+1):    
-            Battery_cost_in[y-1] = sum(model.Battery_Inflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
-            Battery_cost_out[y-1] = sum(model.Battery_Outflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
-            Battery_Yearly_cost[y-1] = Battery_cost_in[y-1] + Battery_cost_out[y-1]
-        return model.Battery_Replacement_Cost_NonAct[s] == sum(Battery_Yearly_cost[y-1] for y in model.years) 
+        if model.Battery_Degradation == 1 and model.Battery_Iterative_Replacement == 1:
+            upgrade_years_list = [1 for i in range(len(model.steps))]
+            s_dur = model.Step_Duration 
+            for i in range(1, len(model.steps)): 
+                upgrade_years_list[i] = upgrade_years_list[i-1] + s_dur  
+            yu_tuples_list = [[] for i in model.years]  
+            for y in model.years:      
+                for i in range(len(upgrade_years_list)-1):
+                    if y >= upgrade_years_list[i] and y < upgrade_years_list[i+1]:
+                        yu_tuples_list[y-1] = (y, model.steps[i+1])          
+                    elif y >= upgrade_years_list[-1]:
+                        yu_tuples_list[y-1] = (y, len(model.steps))            
+            tup_list = [[] for i in range(len(model.steps)-1)]  
+            for i in range(0, len(model.steps) - 1):
+                tup_list[i] = yu_tuples_list[model.Step_Duration*i + model.Step_Duration]   
+                
+            Rep_Bat = (((model.Battery_Units[1]*model.Battery_Nominal_Capacity_milp)*(model.Battery_Specific_Investment_Cost-model.Battery_Specific_Electronic_Investment_Cost))
+                            + sum((((model.Battery_Units[ut] - model.Battery_Units[ut-1])*model.Battery_Nominal_Capacity_milp*(model.Battery_Specific_Investment_Cost-model.Battery_Specific_Electronic_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
+                            for (yt,ut) in tup_list))) 
+            Battery_Yearly_cost = [0 for y in model.years]    
+            for y in range(1,model.Years+1): 
+                if y == (model.Battery_Replacement_Year-1):    
+                    Battery_Yearly_cost[y-1] = Rep_Bat
+            return model.Battery_Replacement_Cost_NonAct[s] == sum(Battery_Yearly_cost[y-1] for y in model.years) 
+        
+        if model.Battery_Degradation == 1 and model.Battery_Iterative_Replacement == 0:
+            return model.Battery_Replacement_Cost_Act[s] == 0 
+        
+        if model.Battery_Degradation == 0:
+            Battery_cost_in = [0 for y in model.years]
+            Battery_cost_out = [0 for y in model.years]
+            Battery_Yearly_cost = [0 for y in model.years]    
+            for y in range(1,model.Years+1):    
+                Battery_cost_in[y-1] = sum(model.Battery_Inflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
+                Battery_cost_out[y-1] = sum(model.Battery_Outflow[s,y,t]*model.Unitary_Battery_Replacement_Cost for t in model.periods)
+                Battery_Yearly_cost[y-1] = Battery_cost_out[y-1] + Battery_cost_in[y-1]
+            return model.Battery_Replacement_Cost_NonAct[s] == sum(Battery_Yearly_cost[y-1] for y in model.years) 
+    
     
     "Salvage Value"
     def Salvage_Value(model):   
@@ -2029,7 +2089,7 @@ class Constraints_Brownfield_Milp():
     
     #%% Electricity balance constraints
     def BESS_Capacity(model,ut): #Minimum battery capacity 
-        return model.Battery_Units[1]*model.Battery_Nominal_Capacity_milp >= model.Battery_capacity
+        return model.Battery_Units[1]*model.Battery_Nominal_Capacity_milp >= model.Battery_capacity*model.Battery_Initial_SOH
     
     def GEN_Capacity(model,ut,g): #Minimum generator capacity
         return model.Generator_Units[1,g]*model.Generator_Nominal_Capacity_milp[g] >= model.Generator_capacity[g]
@@ -2132,16 +2192,28 @@ class Constraints_Brownfield_Milp():
             return model.Battery_SOC[s,yt,t] == model.Battery_SOC[s,yt,t-1] - model.Battery_Outflow[s,yt,t]/model.Battery_Discharge_Battery_Efficiency + model.Battery_Inflow[s,yt,t]*model.Battery_Charge_Battery_Efficiency    
     
     def Maximun_Charge(model,s,yt,ut,t): # Maximun state of charge of the Battery
-        return model.Battery_SOC[s,yt,t] <= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp
+       if model.Battery_Degradation == 1:
+           return model.Battery_SOC[s,yt,t] <= model.Battery_Bank_Energy[s,yt,t]  
+       else: 
+           return model.Battery_SOC[s,yt,t] <= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC
     
     def Minimun_Charge(model,s,yt,ut,t): # Minimun state of charge
-        return model.Battery_SOC[s,yt,t] >= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*(1-model.Battery_Depth_of_Discharge)
+        if model.Battery_Degradation == 1:
+            return model.Battery_SOC[s,yt,t] >= model.Battery_Bank_Energy[s,yt,t]*(1-model.Battery_Depth_of_Discharge)
+        else:
+            return model.Battery_SOC[s,yt,t] >= model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC*(1-model.Battery_Depth_of_Discharge)
     
-    def Max_Power_Battery_Charge(model,ut): 
-        return model.Battery_Maximum_Charge_Power[ut] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp)/model.Maximum_Battery_Charge_Time
+    def Max_Power_Battery_Charge(model,s,yt,ut,t): 
+        if model.Battery_Degradation == 1:
+            return model.Battery_Maximum_Charge_Power[ut] <= model.Battery_Bank_Energy[s,yt,t]/model.Maximum_Battery_Charge_Time
+        else: 
+            return model.Battery_Maximum_Charge_Power[ut] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC)/model.Maximum_Battery_Charge_Time
     
-    def Max_Power_Battery_Discharge(model,ut):
-        return model.Battery_Maximum_Discharge_Power[ut] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp)/model.Maximum_Battery_Discharge_Time
+    def Max_Power_Battery_Discharge(model,s,yt,ut,t):
+        if model.Battery_Degradation == 1:
+            return model.Battery_Maximum_Discharge_Power[ut] <= model.Battery_Bank_Energy[s,yt,t]/model.Maximum_Battery_Discharge_Time
+        else:
+            return model.Battery_Maximum_Discharge_Power[ut] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC)/model.Maximum_Battery_Discharge_Time
     
     def Max_Bat_in(model,s,yt,ut,t): # Minimun flow of energy for the charge fase
         return model.Battery_Inflow[s,yt,t] <= model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
@@ -2150,19 +2222,38 @@ class Constraints_Brownfield_Milp():
         return model.Battery_Outflow[s,yt,t] <= model.Energy_Demand[s,yt,t]
         
     def Battery_Min_Capacity(model,ut):    
-        return   model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp >= model.Battery_Min_Capacity[ut]
+        return   model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC >= model.Battery_Min_Capacity[ut]
     
     def Battery_Min_Step_Capacity(model,yt,ut):    
         if ut > 1:
             return model.Battery_Units[ut] >= model.Battery_Units[ut-1]
         elif ut == 1:
             return model.Battery_Units[ut] == model.Battery_Units[ut]
-        
+    
     def Battery_Single_Flow_Discharge(model,s,yt,ut,t):
         return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
     
     def Battery_Single_Flow_Charge(model,s,yt,ut,t):
         return   model.Battery_Inflow[s,yt,t] <= (1-model.Single_Flow_BESS[s,yt,t])*model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
+    
+    "Battery Degradation constraints"
+    def Battery_Bank_Degradation(model,s,yt,ut,t):
+        from Initialize import Alpha, Beta
+        Battery_Bank_Energy_Exchange = model.Battery_Outflow[s,yt,t] + model.Battery_Inflow[s,yt,t] 
+       
+        if t == 1 and yt == 1:
+            return model.Battery_Bank_Energy[s,yt,t] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC-Alpha[t]*model.Battery_Bank_Energy[s,yt,t]
+                                            -Beta[t]*Battery_Bank_Energy_Exchange) 
+        if t == 1 and yt != 1:
+            if  model.Battery_Iterative_Replacement == 1:
+                if yt == model.Battery_Replacement_Year:
+                        return model.Battery_Bank_Energy[s,yt,t] == model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp
+            else:
+                return model.Battery_Bank_Energy[s,yt,t] == (model.Battery_Bank_Energy[s,yt-1,model.Periods]-Alpha[t]*model.Battery_Bank_Energy[s,yt,t]
+                                            -Beta[t]*Battery_Bank_Energy_Exchange) 
+        else:
+            return model.Battery_Bank_Energy[s,yt,t] == (model.Battery_Bank_Energy[s,yt,t-1]-Alpha[t]*model.Battery_Bank_Energy[s,yt,t]
+                                            -Beta[t]*Battery_Bank_Energy_Exchange)
         
     "Diesel generator constraints"
     if Generator_Partial_Load:

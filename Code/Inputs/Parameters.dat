@@ -88,7 +88,7 @@ param: Generator_Partial_Load := 0;                         # Options: 1 to acti
 param: Multiobjective_Optimization := 0;                    # Options: 1 if optimization of NPC/operation cost and CO2 emissions,0 otherwise
 param: Greenfield_Investment := 1;                          # Options: 1 if Greenfield investment, 0 Brownfield investment
 param: Plot_Max_Cost := 0;                                  # Options: 1 if the Pareto curve has to include the point at maxNPC/maxOperationCost, 0 otherwise
-param: RE_Supply_Calculation := 1;  			            # Options: 1 to select solar PV and wind production time series calculation (using NASA POWER data), 0 otherwise
+param: RE_Supply_Calculation := 0;  			            # Options: 1 to select solar PV and wind production time series calculation (using NASA POWER data), 0 otherwise
 param: Demand_Profile_Generation := 0;   		            # Options: 1 to select load demand profile generation (with demand archetypes), 0 otherwise
 param: Grid_Connection := 0;                                # Options: 1 to select grid connection during project lifetime, 0 otherwise
 param: Grid_Availability_Simulation := 0;                   # Options: 1 to simulate grid availability, 0 otherwise
@@ -153,16 +153,16 @@ param: Battery_Charge_Battery_Efficiency := 0.9;              # Charge efficienc
 param: Battery_Depth_of_Discharge := 0.8;                     # Depth of discharge of the battery bank [%]                     
 param: Maximum_Battery_Discharge_Time := 5;                   # Maximum time to discharge the battery bank [h]                     
 param: Maximum_Battery_Charge_Time := 5;                      # Maximum time to charge the battery bank [h]
-param: Battery_Cycles := 6000;                                # Maximum number of cycles before degradation of the battery [-]  
+param: Battery_Cycles := 6000;                                # Maximum number of cycles before degradation of the battery bank [-]  
 param: Battery_Initial_SOC := 1;                              # Battery initial state of charge [%]
-param: Battery_capacity := 0;                                 # Existing Battery capacity [Wh]
+param: Battery_capacity := 0;                                 # Existing battery bank capacity [Wh]
+param: Battery_Initial_SOH := 1;                              # Existing battery bank State of Health  [%]
 param: BESS_unit_CO2_emission := 0;
 
 # MILP Formulation + Battery Bank degradation
 
 param: Battery_Technology := 1;                               # Battery technology (1 = Lithium LFP, 2 = Lithium NMC or 3 = Lead Acid)        
 param: Battery_Nominal_Capacity_milp := 1000;                 # Nominal capacity of each battery [Wh]
-param: Battery_Initial_SOH := 1;                              # Existing battery bank State of Health  [%]
 
 param: Battery_Replacement_Year := 11;                        # Year for battery bank replacement (at the beginning of the year), based on an initial iteration
 

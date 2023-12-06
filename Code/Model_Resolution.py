@@ -187,9 +187,13 @@ def Model_Resolution(model, datapath="Inputs/Parameters.dat",options_string="mip
                                                     model.years_steps,
                                                     model.periods,
                                                     rule=C.Minimun_Charge) # Minimun state of charge
-        model.MaxPowerBatteryCharge    = Constraint(model.steps, 
+        model.MaxPowerBatteryCharge    = Constraint(model.scenarios,
+                                                    model.years_steps,
+                                                    model.periods, 
                                                     rule=C.Max_Power_Battery_Charge)  # Max power battery charge constraint
-        model.MaxPowerBatteryDischarge = Constraint(model.steps,
+        model.MaxPowerBatteryDischarge = Constraint(model.scenarios,
+                                                    model.years_steps,
+                                                    model.periods,
                                                     rule=C.Max_Power_Battery_Discharge)    # Max power battery discharge constraint
         model.MaxBatIn                 = Constraint(model.scenarios,
                                                     model.years_steps,

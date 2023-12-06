@@ -150,10 +150,12 @@ def Initialize_Discount_Rate(model):
 
 if RE_Supply_Calculation:
     Renewable_Energy = RE_supply().set_index(pd.Index(range(1, 8761)), inplace=False)
-    T_amb = list(Renewable_Energy.loc[:, "Ambient Temperature"])
+    df = pd.read_csv('Inputs/RES_Time_Series.csv', delimiter=';', decimal=',', usecols = [3])
+    T_amb = df.iloc[:, 0].tolist()
 else:
     Renewable_Energy = pd.read_csv('Inputs/RES_Time_Series.csv', delimiter=';', decimal=',', header=0)
-    T_amb = list(Renewable_Energy.loc[:, "Ambient Temperature"])
+    df = pd.read_csv('Inputs/RES_Time_Series.csv', delimiter=';', decimal=',', usecols = [3])
+    T_amb = df.iloc[:, 0].tolist()
     
 if Demand_Profile_Generation:
     Demand = demand_generation()
