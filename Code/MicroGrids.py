@@ -47,8 +47,7 @@ PlotTime3 = 3                        # Number of days to be shown in the plot
 PlotFormat3 = 'png'                  # Desired extension of the saved file (Valid formats: png, svg, pdf)
 PlotResolution3 = 400                # Plot resolution in dpi (useful only for .png files, .svg and .pdf output a vector plot)
 '''
-# DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
-Battery_SOH(instance,Time_Series,PlotScenario,PlotResolution,PlotFormat)
+DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
 '''
 DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotResolution1,PlotFormat1)
 
