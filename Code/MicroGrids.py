@@ -3,7 +3,7 @@ from pyomo.environ import AbstractModel
 from Model_Creation import Model_Creation
 from Model_Resolution import Model_Resolution
 from Results import ResultsSummary, TimeSeries, PrintResults
-from Plots import DispatchPlot, SizePlot, Battery_SOH
+from Plots import DispatchPlot, SizePlot
 
 
 start = time.time()         # Start time counter
