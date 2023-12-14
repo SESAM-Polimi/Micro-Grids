@@ -2185,7 +2185,11 @@ class Constraints_Brownfield_Milp():
     "Battery Energy Storage constraints"
     def State_of_Charge(model,s,yt,ut,t): # State of Charge of the battery
         if t==1 and yt==1: # The state of charge (State_Of_Charge) for the period 0 is equal to the Battery size.
-            return model.Battery_SOC[s,yt,t] == model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC - model.Battery_Outflow[s,yt,t]/model.Battery_Discharge_Battery_Efficiency + model.Battery_Inflow[s,yt,t]*model.Battery_Charge_Battery_Efficiency
+            if model.Battery_capacity == 0:
+                return model.Battery_SOC[s,yt,t] == model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC - model.Battery_Outflow[s,yt,t]/model.Battery_Discharge_Battery_Efficiency + model.Battery_Inflow[s,yt,t]*model.Battery_Charge_Battery_Efficiency
+            else:
+                return model.Battery_SOC[s,yt,t] == model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC*model.Battery_Initial_SOH - model.Battery_Outflow[s,yt,t]/model.Battery_Discharge_Battery_Efficiency + model.Battery_Inflow[s,yt,t]*model.Battery_Charge_Battery_Efficiency
+           
         if t==1 and yt!=1:
             return model.Battery_SOC[s,yt,t] == model.Battery_SOC[s,yt-1,model.Periods] - model.Battery_Outflow[s,yt,t]/model.Battery_Discharge_Battery_Efficiency + model.Battery_Inflow[s,yt,t]*model.Battery_Charge_Battery_Efficiency
         else:  
@@ -2228,8 +2232,12 @@ class Constraints_Brownfield_Milp():
         if ut > 1:
             return model.Battery_Units[ut] >= model.Battery_Units[ut-1]
         elif ut == 1:
-            return model.Battery_Units[ut] == model.Battery_Units[ut]
+            if model.Battery_capacity == 0:
+                return model.Battery_Units[ut] == model.Battery_Units[ut]
+            else:
+                return model.Battery_Units[ut] == model.Battery_capacity/model.Battery_Nominal_Capacity_milp
     
+        
     def Battery_Single_Flow_Discharge(model,s,yt,ut,t):
         return   model.Battery_Outflow[s,yt,t] <= model.Single_Flow_BESS[s,yt,t]*model.Battery_Maximum_Discharge_Power[ut]*model.Delta_Time
     
@@ -2242,8 +2250,12 @@ class Constraints_Brownfield_Milp():
         Battery_Bank_Energy_Exchange = model.Battery_Outflow[s,yt,t] + model.Battery_Inflow[s,yt,t] 
        
         if t == 1 and yt == 1:
-            return model.Battery_Bank_Energy[s,yt,t] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC-Alpha[t]*model.Battery_Bank_Energy[s,yt,t]
-                                            -Beta[t]*Battery_Bank_Energy_Exchange) 
+            if model.Battery_capacity == 0:
+                return model.Battery_Bank_Energy[s,yt,t] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC-Alpha[t]*model.Battery_Bank_Energy[s,yt,t]
+                                                -Beta[t]*Battery_Bank_Energy_Exchange) 
+            else:
+                return model.Battery_Bank_Energy[s,yt,t] == (model.Battery_Units[ut]*model.Battery_Nominal_Capacity_milp*model.Battery_Initial_SOC*model.Battery_Initial_SOH-Alpha[t]*model.Battery_Bank_Energy[s,yt,t]
+                                                -Beta[t]*Battery_Bank_Energy_Exchange) 
         if t == 1 and yt != 1:
             if  model.Battery_Iterative_Replacement == 1:
                 if yt == model.Battery_Replacement_Year:

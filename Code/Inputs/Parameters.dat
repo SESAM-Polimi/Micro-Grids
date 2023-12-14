@@ -155,8 +155,8 @@ param: Maximum_Battery_Discharge_Time := 5;                   # Maximum time to 
 param: Maximum_Battery_Charge_Time := 5;                      # Maximum time to charge the battery bank [h]
 param: Battery_Cycles := 6000;                                # Maximum number of cycles before degradation of the battery bank [-]  
 param: Battery_Initial_SOC := 1;                              # Battery initial state of charge [%]
-param: Battery_capacity := 2000;                                 # Existing battery bank capacity [Wh]
-param: Battery_Initial_SOH := 1;                              # Existing battery bank State of Health  [%]
+param: Battery_capacity := 0;                                 # Existing battery bank capacity [Wh]
+param: Battery_Initial_SOH := 0;                              # Existing battery bank State of Health  [%]
 param: BESS_unit_CO2_emission := 0;
 
 # MILP Formulation + Battery Bank degradation
