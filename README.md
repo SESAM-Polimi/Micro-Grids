@@ -1,5 +1,7 @@
-MicroGridsPy - Version 2.0
+MicroGridsPy - Version 2.0 (RSET 2023 Publication)
 ========================
+
+This is code used for the publication: https://doi.org/10.1016/j.rset.2023.100053
 
 ### Description
 
