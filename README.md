@@ -11,7 +11,6 @@ This branch contains environment files for setting up MicroGridsPy across differ
 
 * Create and activate the mgpy environment by running the following command in the Anaconda Prompt terminal:
 
-.. code-block:: python
-
+   ```bash
    conda env create -f mgpy_win.yml
    conda activate mgpy
