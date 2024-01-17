@@ -15,3 +15,4 @@ This branch contains environment files for setting up MicroGridsPy across differ
    conda env create -f mgpy_win.yml
    conda activate mgpy
 
+> :warning: **Warning**: The environment for macOS (version 2.1) of MicroGridsPy is currently under development and not available. We advise macOS users to rely on MicroGridsPy version 2.0 until the new environment is fully developed and released.
