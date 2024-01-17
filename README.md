@@ -14,3 +14,4 @@ This branch contains environment files for setting up MicroGridsPy across differ
    ```bash
    conda env create -f mgpy_win.yml
    conda activate mgpy
+
