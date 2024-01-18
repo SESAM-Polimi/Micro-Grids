@@ -1,5 +1,6 @@
 name: mgpy
 channels:
+  - http://conda.anaconda.org/gurobi
   - defaults
 dependencies:
   - alabaster=0.7.12=pyhd3eb1b0_0
