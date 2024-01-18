@@ -1,82 +1,33 @@
 
-# --- RES parameters (non-editable) ---
-
-param: base_URL:= 'https://power.larc.nasa.gov/api/temporal/';               	#URL base for API 
-param: loc_id := 'point';                                                       #spatial resolution
-param: parameters_1 := 'ALLSKY_SFC_SW_DWN';			                             #parameters of daily data with resolution of 1° x 1°
-param: parameters_2 := 'T2MWET, T2M, WS50M';			                          #parameters of daily data with resolution of 0.5° x 0.625°
-param: parameters_3 := 'WS50M, WS2M,WD50M, T2M';				#parameters of hourly data
-param: date_start := '20150101';  						#starting date for dataset (from 2001)
-param: date_end := '20201231';      						#ending date for dataset (until 2020)
-param: community := 'RE';                     					#community of data archive
-param: temp_res_1 := 'daily';							#temporal resolution for daily data
-param: temp_res_2 := 'hourly';							#temporal resolution for hourly data
-param: output_format := 'JSON'; 						#output format
-param: user := 'anonymous';							#user key
-
-# --- RES parameters (editable) ---
-
-param: lat := '0 33 56.4'; 						#latitude  [-° -' -", N positive, S negative]
-param: lon := '10 1 1'; 							#longitude [-° -' -", E positive, O negative]
-param: time_zone := +1;								#UTC time zone [-]
-
-param: nom_power := 285; 							#Module nominal power [W]	
-param: tilt := 10;								    #tilt angle [°]
-param: azim := 180;								    #azimuth angle [0° south facing]
-param: ro_ground := 0.2;							#ground reflectivity  [-]
-param: k_T := -0.37;								#power variation coefficient with temperature [%/°C]
-param: NMOT := 45 ;								    #Nominal Module Operating Temperature [°C]		
-param: T_NMOT := 20;								#ambient temperature of NMOT conditions [°C]
-param: G_NMOT := 800;								#irradiance in NMOT conditions [W/m^2]
-param: turbine_type := 'HA';							#Horizontal Axis/Vertical Axis
-param: turbine_model := 'NPS100c-21';				      		#model name of the turbine 
-param: drivetrain_efficiency := 0.9;                    			#average efficiency of turbine drivetrain (gearbox,generator,brake)
-
-# --- Demand parameters ---
-
-param: demand_growth := '3';							#yearly expected average percentage variation of the demand [%]
-param: cooling_period := 'AY';							#cooling period (NC = No Cooling; AY = All Year; OM = Oct-Mar; AS=Apr-Sept)
-param: h_tier1:= '252';								#number of households in the wealth tier 1
-param: h_tier2:= '160';								#number of households in the wealth tier 2
-param: h_tier3:= '50';								#number of households in the wealth tier 3
-param: h_tier4:= '36';								#number of households in the wealth tier 4
-param: h_tier5:= '5';								#number of households in the wealth tier 5
-param: schools:= '1';								#number of schools
-param: hospital_1:= '0';							#number of hospitals of type 1
-param: hospital_2:= '1';							#number of hospitals of type 2
-param: hospital_3:= '0';							#number of hospitals of type 3
-param: hospital_4:= '0';							#number of hospitals of type 4
-param: hospital_5:= '0';							#number of hospitals of type 5
-
 # --- Model parameters ---
 
-param: Years := 1;                                         # Total duration of the project
-param: Step_Duration := 1;                                 # Duration (in years) of each investment decision step in which the project lifetime will be split
+param: Years := 1;                                          # Total duration of the project
+param: Step_Duration := 1;                                  # Duration (in years) of each investment decision step in which the project lifetime will be split
 param: Min_Last_Step_Duration := 1;                         # Minimum duration (in years) of the last investment decision step, in case of non-homogeneous divisions of the project lifetime 
 param: StartDate := '01/01/2019 00:00:00';                  # Start date of the project
 param: Scenarios := 1;                                      # Number of scenarios to consider within the optimisation
 param: Scenario_Weight :=                                   # Occurrence probability of each scenario [-]
 1      1;
 
+param: Classes := 1;                                        # Number of classes of users for the thermal part
 
-
-param: Discount_Rate := 0.1;                                  # Real discount rate accounting also for inflation
+param: Discount_Rate := 0.1;                                # Real discount rate accounting also for inflation
 param: Investment_Cost_Limit := 500000;                     # Upper limit to investment cost [USD] (considered only in case Optimization_Goal='Operation cost')
 
-param: Optimization_Goal := 1;                          # Options: 1 = NPC / 2 = Operation cost. It allows to switch between a NPC-oriented optimization and a NON-ACTUALIZED Operation Cost-oriented optimization
-param: MES_Formulation := 0;                            # 1 to activate Multi-Energy System formulation (accounting also for thermal energy production/demand/storage), 0 otherwise
-param: MILP_Formulation := 0;                           # 1 to activate MILP formulation (for monodirectional energy flows), 0 otherwise
-param: Minute_Resolution := 0;                          # 1 to activate 1-minute resolution optimization, 0 for default 1-hour resolution (NOTE: RES and demand calculation work only with 1-hour resolution) 
-param: Multiobjective_Optimization := 0;                # 1 if optimization of NPC/operation cost and CO2 emissions,0 otherwise
-param: Greenfield_Investment := 0;                   # 1 if Greenfield investment, 0 Brownfield investment
-param: Plot_Max_Cost := 0;                                     # 1 if the Pareto curve has to include the point at maxNPC/maxOperationCost, 0 otherwise
-param: Renewable_Penetration := 0;                            # Fraction of electricity produced by renewable sources. Number from 0 to 1.
-param: Battery_Independence  := 0;                            # Number of days of battery independence
-param: RE_Supply_Calculation := 0;  			                # 1 to select solar PV and wind production time series calculation (using NASA POWER data), 0 otherwise
-param: Demand_Profile_Generation := 0;   		                   # 1 to select load demand profile generation (with demand archetypes), 0 otherwise
-param: Grid_Connection := 1;                                   # 1 to select grid connection during project lifetime, 0 otherwise
-param: Grid_Availability_Simulation := 0;                     # 1 to simulate grid availability, 0 otherwise
-param: Grid_Connection_Type := 2;	                            # 2 for sell/purchase power with the national grid, 1 for purchase only
+param: Optimization_Goal := 1;                              # Options: 1 = NPC / 2 = Operation cost. It allows to switch between a NPC-oriented optimization and a NON-ACTUALIZED Operation Cost-oriented optimization
+param: MES_Formulation := 0;                                # 1 to activate Multi-Energy System formulation (accounting also for thermal energy production/demand/storage), 0 otherwise
+param: MILP_Formulation := 0;                               # 1 to activate MILP formulation (for monodirectional energy flows), 0 otherwise
+param: Minute_Resolution := 0;                              # 1 to activate 1-minute resolution optimization, 0 for default 1-hour resolution (NOTE: RES and demand calculation work only with 1-hour resolution) 
+param: Multiobjective_Optimization := 0;                    # 1 if optimization of NPC/operation cost and CO2 emissions,0 otherwise
+param: Greenfield_Investment := 0;                          # 1 if Greenfield investment, 0 Brownfield investment
+param: Plot_Max_Cost := 0;                                  # 1 if the Pareto curve has to include the point at maxNPC/maxOperationCost, 0 otherwise
+param: Renewable_Penetration := 0;                          # Fraction of electricity produced by renewable sources. Number from 0 to 1.
+param: Battery_Independence  := 0;                          # Number of days of battery independence
+param: RE_Supply_Calculation := 0;  			            # 1 to select solar PV and wind production time series calculation (using NASA POWER data), 0 otherwise
+param: Demand_Profile_Generation := 0;   		            # 1 to select load demand profile generation (with demand archetypes), 0 otherwise
+param: Grid_Connection := 0;                                # 1 to select grid connection during project lifetime, 0 otherwise
+param: Grid_Availability_Simulation := 0;                   # 1 to simulate grid availability, 0 otherwise
+param: Grid_Connection_Type := 2;	                        # 2 for sell/purchase power with the national grid, 1 for purchase only
 
 
 
@@ -150,17 +101,18 @@ param: FUEL_unit_CO2_emission :=                            # [kgCO2/lt]
 param: Year_Grid_Connection := 1;			                # Year at which microgrid is connected to the national grid (starting from 1)
 param: Grid_Sold_El_Price := 0.35;                          # Price at which electricity is sold to the grid [USD/kWh]
 param: Grid_Purchased_El_Price := 0.3;		                # Price at which electricity is purchased from the grid [USD/kWh]
-param: Grid_Distance := 3.6;				                    # Distance from grid connection point [km]
+param: Grid_Distance := 3.6;				                # Distance from grid connection point [km]
 param: Grid_Connection_Cost := 13892;			            # Investment cost of grid connection, i.e. extension of power line + transformer costs [USD/km]
 param: Grid_Maintenance_Cost := 0.02;                       # O&M cost for maintenance of the power line and transformer as a fraction of investment cost [-]
 param: Maximum_Grid_Power := 500;			                # Maximum active power that can be injected/withdrawn to/from the grid [kW]
-param: Grid_Average_Number_Outages := 150;                   # Average number of outages in the national grid in a year (0 to simulate ideal power grid)
+param: Grid_Average_Number_Outages := 150;                  # Average number of outages in the national grid in a year (0 to simulate ideal power grid)
 param: Grid_Average_Outage_Duration := 120;                 # Average duration of an outage [min] (0 to simulate ideal power grid)
 param: National_Grid_Specific_CO2_emissions := 0.243;       # Specific CO2 emissions  by the considered national grid [kgCO2/kWh]
 
-param: Lost_Load_Fraction := 0.0;                           # Maximum admittable loss of load [-]
-param: Lost_Load_Specific_Cost := 0.0;                      # Value of the unmet load [USD/Wh]
-
+param: Lost_Load_EE_Fraction := 0;                          # Maximum admittable loss of electric energy load [-]
+param: Lost_Load_EE_Specific_Cost := 0;                     # Value of the electric energy unmet load [USD/Wh]
+param: Lost_Load_Th_Fraction := 0;                          # Maximum admittable loss of thermal energy load [-]
+param: Lost_Load_Th_Specific_Cost := 0;                     # Value of the thermal energy unmet load [USD/Wh]
 
 param: RES_Colors :=                                        # HEX color code for RES in the plots
 1      'FF8800';
@@ -171,3 +123,93 @@ param: Lost_Load_Color := 'F21B3F';                         # HEX color code for
 param: Curtailment_Color := 'FFD500';                       # HEX color code for curtailment in the plots
 param: Energy_To_Grid_Color := '008000';                    # HEX color code for curtailment in the plots
 param: Energy_From_Grid_Color := '800080';                  # HEX color code for curtailment in the plots
+
+# --- RES parameters (non-editable) ---
+
+param: base_URL:= 'https://power.larc.nasa.gov/api/temporal/';               	#URL base for API 
+param: loc_id := 'point';                                                       #spatial resolution
+param: parameters_1 := 'ALLSKY_SFC_SW_DWN';			                             #parameters of daily data with resolution of 1° x 1°
+param: parameters_2 := 'T2MWET, T2M, WS50M';			                          #parameters of daily data with resolution of 0.5° x 0.625°
+param: parameters_3 := 'WS50M, WS2M,WD50M, T2M';				#parameters of hourly data
+param: date_start := '20150101';  						#starting date for dataset (from 2001)
+param: date_end := '20201231';      						#ending date for dataset (until 2020)
+param: community := 'RE';                     					#community of data archive
+param: temp_res_1 := 'daily';							#temporal resolution for daily data
+param: temp_res_2 := 'hourly';							#temporal resolution for hourly data
+param: output_format := 'JSON'; 						#output format
+param: user := 'anonymous';							#user key
+
+# --- RES parameters (editable) ---
+
+param: lat := '0 33 56.4'; 						#latitude  [-° -' -", N positive, S negative]
+param: lon := '10 1 1'; 							#longitude [-° -' -", E positive, O negative]
+param: time_zone := +1;								#UTC time zone [-]
+
+param: nom_power := 285; 							#Module nominal power [W]	
+param: tilt := 10;								    #tilt angle [°]
+param: azim := 180;								    #azimuth angle [0° south facing]
+param: ro_ground := 0.2;							#ground reflectivity  [-]
+param: k_T := -0.37;								#power variation coefficient with temperature [%/°C]
+param: NMOT := 45 ;								    #Nominal Module Operating Temperature [°C]		
+param: T_NMOT := 20;								#ambient temperature of NMOT conditions [°C]
+param: G_NMOT := 800;								#irradiance in NMOT conditions [W/m^2]
+param: turbine_type := 'HA';							#Horizontal Axis/Vertical Axis
+param: turbine_model := 'NPS100c-21';				      		#model name of the turbine 
+param: drivetrain_efficiency := 0.9;                    			#average efficiency of turbine drivetrain (gearbox,generator,brake)
+
+# --- MES parameters ---
+
+
+
+param: Tank_Efficiency := 0.999;                        # Efficiency of the charge of the tank in %
+param: Tank_Depth_of_Discharge := 0.2;                  # Depth of discharge of the tank in %
+param: Tank_Maximum_Discharge_Time:= 2.5;               # Maximum time of discharge of the tank in hours
+param: Tank_Inv_Specific_Cost := 36;                    # Investment cost of unit tank USD/kWh
+param: Tank_OM_Specific_Cost := 0.015;                  # % of the total investment spend in operation and management of tank unit in each period
+
+
+param: Generator_Efficiency := 0.3;                     # Generator electric efficiency in %
+param: Lower_Heating_Value := 9.84;                     # Lower heating value of the diesel in kWh/L
+param: Diesel_Unitary_Cost := 1;                        # Cost of diesel in USD/L
+param: Generator_Inv_Specific_Cost := 200;              # Investment cost of the diesel generator in USD/kW
+param: Generator_OM_Specific_Cost := 0.1;               # % of the total investment spend in operation and management of diesel generator in each period
+
+
+param: Boiler_Efficiency := 0.87;                       # Boiler efficiency in 
+param: Lower_Heating_Value_NG := 0.0102;                # Lower heating value of the natural gas in kWh/L
+param: NG_Unitary_Cost := 0.00202;                      # Cost of natural gas in USD/L
+param: Boiler_Inv_Specific_Cost := 100;                 # Investment cost of the NG Boiler in USD/kW
+param: Boiler_OM_Specific_Cost := 0.015;                # % of the total investment spend in operation and management of boiler in each period
+
+
+param: Electric_Resistance_Efficiency := 1;             # Electric resistance efficiency in %
+param: Electric_Resistance_Specific_Inv_Cost := 100;    # Investment cost of the electric resistance in USD/kW
+param: Electric_Resistance_OM_Specific_Cost := 0.015;   # % of the total investment spend in operation and management of resistance in each period
+
+
+param: EE_Lost_Load_Tolerance := 0.0;                   # Fraction of tolerated electric lost load in % of the total demand
+param: EE_Value_Of_Lost_Load := 0.0;                    # Value of electric lost load in USD/kWh
+param: Th_Lost_Load_Tolerance := 0.01;                  # Fraction of tolerated thermal lost load in % of the total demand
+param: Th_Value_Of_Lost_Load := 0.0;                    # Value of thermal lost load in USD/kWh
+
+# --- Solar Collector parameters ---
+
+param: SC_Nominal_Capacity := 1.825;                    # Nominal capacity of the Solar Collectors in kW
+param: SC_Inv_Specific_Cost := 420;                     # Investment cost of SC in USD/kW
+param: SC_OM_Specific_Cost := 0.015;                    # % of the total investment spend in operation and management of SC unit in each period
+
+# --- Demand parameters ---
+
+param: demand_growth := '3';							#yearly expected average percentage variation of the demand [%]
+param: cooling_period := 'AY';							#cooling period (NC = No Cooling; AY = All Year; OM = Oct-Mar; AS=Apr-Sept)
+param: h_tier1:= '252';								#number of households in the wealth tier 1
+param: h_tier2:= '160';								#number of households in the wealth tier 2
+param: h_tier3:= '50';								#number of households in the wealth tier 3
+param: h_tier4:= '36';								#number of households in the wealth tier 4
+param: h_tier5:= '5';								#number of households in the wealth tier 5
+param: schools:= '1';								#number of schools
+param: hospital_1:= '0';							#number of hospitals of type 1
+param: hospital_2:= '1';							#number of hospitals of type 2
+param: hospital_3:= '0';							#number of hospitals of type 3
+param: hospital_4:= '0';							#number of hospitals of type 4
+param: hospital_5:= '0';							#number of hospitals of type 5

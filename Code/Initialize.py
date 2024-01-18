@@ -116,8 +116,8 @@ else:
    Demand = pd.read_excel('Inputs/Demand.xlsx', sheetname = "Electric", nrows = N_Periods)
    
 if MES_Formulation:
-   SC_Energy = pd.read_excel('Inputs/Generation.xlsx', sheetname = "Solar_Collectors", nrows = N_Periods) 
-   Thermal_Demand = pd.read_excel('Inputs/Demand.xlsx', sheetname = "Thermal", nrows = N_Periods)
+   SC_Energy_Production = pd.read_excel('Inputs/Generation.xlsx', sheetname = "Solar_Collectors", nrows = N_Periods) 
+   Thermal_Energy_Demand = pd.read_excel('Inputs/Demand.xlsx', sheetname = "Thermal", nrows = N_Periods)
 
 Electric_Energy_Demand_Series = pd.Series()
 for i in range(1,n_years*n_scenarios+1):
@@ -146,17 +146,23 @@ def Initialize_Delta_Time(model):
 def Initialize_Electric_Demand(model, s, y, t):
     return float(Electric_Energy_Demand[0][(s,y,t)])
 
-def Initialize_Thermal_Demand(model, s, y, t):
-    return float(Thermal_Energy_Demand[0][(s,y,t)])
+def Initialize_Thermal_Demand(model, s, y, ct, t):
+    if MES_Formulation == 0:
+        return 0    
+    else:
+        return float(Thermal_Energy_Demand[0][(s,y,t)])
 
 def Initialize_RES_Energy(model,s,r,t):
     column = (s-1)*model.RES_Sources + r 
     return float(Renewable_Energy[column][t])   
 
 def Initialize_SC_Energy(model,s,r,t):
-    column = (s-1)*model.RES_Sources + r 
-    return float(SC_Energy[column][t])  
-
+    column = (s-1)*model.Classes + r
+    if MES_Formulation==0:
+        return 0
+    else:
+        return float(SC_Energy_Production[column][t])
+    
 def Initialize_Battery_Unit_Repl_Cost(model):
     Unitary_Battery_Cost = model.Battery_Specific_Investment_Cost - model.Battery_Specific_Electronic_Investment_Cost
     return Unitary_Battery_Cost/(model.Battery_Cycles*2*(1-model.Battery_Depth_of_Discharge))
@@ -261,6 +267,9 @@ def Initialize_National_Grid_OM_Cost(model):
 
 def Initialize_Battery_Independence(model):
     return Battery_Independence
+
+def Initialize_MES_Formulation(model):
+    return MES_Formulation
 
 def Initialize_Optimization_Goal(model):
     return Optimization_Goal

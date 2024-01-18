@@ -23,6 +23,8 @@ def Model_Resolution(model, datapath="Inputs/Model_data.dat",options_string="mip
             Renewable_Penetration = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Battery_Independence" in Data_import[i]:      
             Battery_Independence = int((re.findall('\d+',Data_import[i])[0]))
+        if "param: MES_Formulation" in Data_import[i]:      
+            MES_Formulation = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Greenfield_Investment" in Data_import[i]:  
             Greenfield_Investment = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Multiobjective_Optimization" in Data_import[i]:      
@@ -91,8 +93,8 @@ def Model_Resolution(model, datapath="Inputs/Model_data.dat",options_string="mip
                                                     rule=C.Battery_Replacement_Cost_NonAct) 
     model.ScenarioLostLoadCostNonActEE   = Constraint(model.scenarios, 
                                                     rule=C.Scenario_Lost_Load_Cost_NonAct_EE)
-    model.ScenarioLostLoadCostActTh      = Constraint(model.scenarios, 
-                                                 rule=C.Scenario_Lost_Load_Cost_Act_Th)
+    model.ScenarioLostLoadCostNonActTh      = Constraint(model.scenarios, 
+                                                 rule=C.Scenario_Lost_Load_Cost_NonAct_Th)
     model.ScenarioVariableCostNonAct   = Constraint(model.scenarios,
                                                     rule=C.Scenario_Variable_Cost_NonAct)     
 
@@ -121,7 +123,7 @@ def Model_Resolution(model, datapath="Inputs/Model_data.dat",options_string="mip
     model.ThermalEnergyBalance = Constraint(model.scenarios, 
                                      model.years, 
                                      model.periods, 
-                                     rule=C.Thermal_Energy_balance)
+                                     rule=C.Thermal_Energy_Balance)
     
     "Renewable Energy Sources constraints"
     model.RenewableEnergy = Constraint(model.scenarios,
@@ -275,8 +277,10 @@ def Model_Resolution(model, datapath="Inputs/Model_data.dat",options_string="mip
                                                 rule=C.Single_Flow_Energy_From_Grid)
     
     "Lost load constraints"
-    model.MaximumLostLoadEE = Constraint(model.scenarios, model.years, 
-                                    rule=C.Maximum_Lost_Load_EE) 
+    model.MaximumLostLoadEE = Constraint(model.scenarios, 
+                                         model.years,
+                                         model.classes,
+                                         rule=C.Maximum_Lost_Load_EE) 
 
     model.MaximumLostLoadTh = Constraint(model.scenarios, 
                                          model.years, 

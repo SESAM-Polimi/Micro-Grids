@@ -1,7 +1,7 @@
 from collections import defaultdict
 import time, sys, concurrent.futures, urllib.request, urllib.parse, urllib.error    
 import pandas as pd, math, numpy as np, re, bisect, json, operator, copy, matplotlib.pyplot as plt
-from windrose import WindroseAxes
+#from windrose import WindroseAxes
 
 #%% Input data section
 
@@ -563,16 +563,16 @@ def export(energy_PV, U_rotor_lst, energy_WT, wind_direction_lst, Cp):
     PlotFormat = 'png'                  # Desired extension of the saved file (Valid formats: png, svg, pdf)
     PlotResolution = 1000                # Plot resolution in dpi (useful only for .png files, .svg and .pdf output a vector plot)
 
-# Windrose plot in the TMY
-    try:    
-        ax = WindroseAxes.from_ax()
-        ax.bar(wind_direction_lst, U_rotor_lst, normed=True, opening=0.8, edgecolor='white')
-        ax.set_legend()
-        plt.title('Windrose',fontsize=18)
-        fig1 = plt.figure(figsize=(20,15))
-        fig1.savefig('Results/Plots/Windrose.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
-    except:
-        print("Windrose not available")
+# # Windrose plot in the TMY
+#     try:    
+#         ax = WindroseAxes.from_ax()
+#         ax.bar(wind_direction_lst, U_rotor_lst, normed=True, opening=0.8, edgecolor='white')
+#         ax.set_legend()
+#         plt.title('Windrose',fontsize=18)
+#         fig1 = plt.figure(figsize=(20,15))
+#         fig1.savefig('Results/Plots/Windrose.'+PlotFormat, dpi=PlotResolution, bbox_inches='tight')
+#     except:
+#         print("Windrose not available")
     '''    
 # Wind speed occurrencies and probability histograms in the TMY
     WS_range = range(0,31)

@@ -4,7 +4,7 @@ from pyomo.environ import  AbstractModel
 from Model_Creation import Model_Creation
 from Model_Resolution import Model_Resolution
 from Results import ResultsSummary, TimeSeries, PrintResults
-from Plots import DispatchPlot, DispatchPlot1, DispatchPlot2, DispatchPlot3, CashFlowPlot, SizePlot
+from Plots import DispatchPlot, CashFlowPlot, SizePlot
 
 start = time.time()         # Start time counter
 model = AbstractModel()     # Define type of optimization problem
@@ -48,9 +48,9 @@ PlotResolution3 = 400                # Plot resolution in dpi (useful only for .
 
 DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
 '''
-DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotResolution1,PlotFormat1)
-DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotResolution2,PlotFormat2)
-DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotResolution3,PlotFormat3)
+DispatchPlot(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotResolution1,PlotFormat1)
+DispatchPlot(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotResolution2,PlotFormat2)
+DispatchPlot(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotResolution3,PlotFormat3)
 '''
 CashFlowPlot(instance,Results,PlotResolution,PlotFormat)
 SizePlot(instance,Results,PlotResolution,PlotFormat)
