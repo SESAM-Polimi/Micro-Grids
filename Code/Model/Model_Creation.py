@@ -267,6 +267,43 @@ def Model_Creation(model):
     model.Large_Constant          = Param(within=NonNegativeReals,
                                           initialize = 10**6)
     
+    "Parameters of the ice balance and ice Ice_Tank"         
+
+    model.Ice_Demand = Param(model.scenarios,
+                             model.years,
+                             model.periods,
+                             initialize=Initialize_Ice_Demand)
+    model.Tamb       = Param(model.scenarios,
+                             model.years,
+                             model.periods,
+                             initialize=Initialize_Tamb)    
+    model.COP_n      =  Param(within =NonNegativeReals)
+    model.COP        =  Param(model.scenarios,
+                             model.years,
+                             model.periods,
+                             initialize =Initialize_COP)
+    model.eta_ice_tank_nom = Param(within= NonNegativeReals)                          # Efficiency of the Ice_Tank in %
+    model.Tgw          = Param(model.scenarios,
+                               model.years,
+                               model. periods,
+                               initialize=Initialize_Tgw)
+    model.eta_ice_tank = Param(model.scenarios,
+                               model.years,
+                               model.periods,
+                               initialize=Initialize_Eta_Ice_Tank)
+    
+    model.Ice_Tank_Depth_of_Discharge     = Param()                                # Depth of discharge of the Ice_Tank in %
+    model.Ice_Tank_Maximum_Discharge_Time = Param(within=NonNegativeReals)         # Maximum time of charge of the Ice_Tank in hours
+    model.Ice_Tank_Maximum_Charge_Time    = Param(within=NonNegativeReals)
+    model.Ice_Tank_Specific_Investment_Cost      = Param(within=NonNegativeReals)         # Investment cost of Ice_Tank in USD/kWh
+    model.Ice_Tank_Specific_OM_Cost       = Param(within=NonNegativeReals)         # % of the total investment spend in operation and management of Ice_Tank unit in each period
+    model.Ice_Tank_Initial_SOC            = Param(within=NonNegativeReals)
+    if  Ice_Tank_Independence > 0:
+        model.Ice_Tank_Independence = Ice_Tank_Independence
+        model.Ice_Tank_Min_Capacity = Param(model.steps, 
+                                           initialize=Initialize_Ice_Tank_Minimum_Capacity)
+
+    
     "Parameters of the plot"
     model.RES_Colors             = Param(model.renewable_sources,within=Any)                       # HEX color codes for RES
     model.Battery_Color          = Param(within=Any)                                               # HEX color codes for Battery bank
@@ -275,6 +312,8 @@ def Model_Creation(model):
     model.Curtailment_Color      = Param(within=Any)                                               # HEX color codes for Curtailment
     model.Energy_To_Grid_Color   = Param(within=Any)                                               # HEX color codes for Energy to grid
     model.Energy_From_Grid_Color = Param(within=Any)                                               # HEX color codes for Energy from grid
+    model.Ice_Tank_Color         = Param(within=Any)
+
     
 #%% VARIABLES
 #############
@@ -443,6 +482,41 @@ def Model_Creation(model):
     model.Total_Scenario_Variable_Cost_Act    = Var(model.scenarios, 
                                                     within=Reals) 
     model.Total_Scenario_Variable_Cost_NonAct = Var(model.scenarios, 
-                                                    within=Reals) 
-
+                                                    within=Reals)
+    
+    "Variables associated to the ice balance"
+    model.Ice_Prod                            = Var(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    within=NonNegativeReals)
+    model.Compressor_Energy_Consumption       = Var(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    within=NonNegativeReals)
+    model.Compressor_Nominal_Power            = Var(model.steps,
+                                                    within=NonNegativeReals)
+    model.Tot_Ice_Prod                        = Var(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    within=NonNegativeReals)
+    
+    "Variables associated to the ice tank"
+    model.Ice_Tank_Nominal_Capacity           = Var(model.steps,
+                                                    within=NonNegativeReals)
+    model.Ice_Tank_Outflow                    = Var(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    within=NonNegativeReals)
+    model.Ice_Tank_Inflow                     = Var(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    within=NonNegativeReals)
+    model.Ice_Tank_State_of_Charge            = Var(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    within=NonNegativeReals)
+    model.Ice_Tank_Maximum_Discharge_Capacity = Var(model.steps,
+                                                    within=NonNegativeReals)
+    model.Ice_Tank_Maximum_Charge_Capacity    = Var(model.steps,
+                                                    within=NonNegativeReals)
 

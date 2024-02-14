@@ -81,6 +81,9 @@ class Constraints_Greenfield():
                         for (yt,ut) in tup_list) for g in model.generator_types)  
         Inv_Bat = ((model.Battery_Nominal_Capacity[1]*model.Battery_Specific_Investment_Cost)
                         + sum((((model.Battery_Nominal_Capacity[ut] - model.Battery_Nominal_Capacity[ut-1])*model.Battery_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
+                        for (yt,ut) in tup_list))
+        Inv_Ice_Tank = ((model.Ice_Tank_Nominal_Capacity[1]*model.Ice_Tank_Specific_Investment_Cost)
+                        + sum((((model.Ice_Tank_Nominal_Capacity[ut] - model.Ice_Tank_Nominal_Capacity[ut-1])*model.Ice_Tank_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
                         for (yt,ut) in tup_list)) 
         
         if model.Model_Components == 0:
@@ -101,6 +104,8 @@ class Constraints_Greenfield():
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)/((
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
+        OyM_Ice_Tank = sum((model.Ice_Tank_Nominal_Capacity[ut]*model.Ice_Tank_Specific_Investment_Cost*model.Ice_Tank_Specific_OM_Cost)/((
+                        1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
         
         if model.Model_Components == 0:
             return model.Operation_Maintenance_Cost_Act == OyM_Ren + OyM_Gen + OyM_Bat 
@@ -116,6 +121,7 @@ class Constraints_Greenfield():
                         for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)
                         for (yt,ut) in model.years_steps)
+        
         
         if model.Model_Components == 0:
             return model.Operation_Maintenance_Cost_NonAct == OyM_Ren + OyM_Gen + OyM_Bat 
@@ -2399,4 +2405,10 @@ class Constraints_Brownfield_Milp():
         return model.Energy_From_Grid[s,yt,t] <= (1-model.Single_Flow_Grid[s,yt,t])*model.Large_Constant   
 
 
+    # "Ice balance constraints"
+    # def Maximum_Consumption(model,s,yt,ut,t):
+    #     return model.Compressor_Energy_Consumption[s,yt,t] <= model.Compressor_Nominal_Power[s,ut]
 
+
+    "Ice tank constraints"
+    

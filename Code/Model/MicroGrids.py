@@ -23,6 +23,11 @@ Optimization_Goal = instance.Optimization_Goal.extract_values()[None]
 Results           = ResultsSummary(instance, Optimization_Goal,Time_Series) 
 
 #%% Plot and print-out
+# AGGIUNGERE FUNZIONI DI PLOT PER DOMANDA TERMICA E GHIACCIO DA FARE ABILITARE O NO ALL'UTENTE
+
+
+#%%
+
 PlotScenario = 1                     # Plot scenario
 PlotDate = '01/01/2023 00:00:00'     # Month-Day-Year. If devoid of meaning: Day-Month-Year
 PlotTime = 3                         # Number of days to be shown in the plot

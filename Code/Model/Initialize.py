@@ -25,10 +25,10 @@ from Grid_Availability import grid_availability as grid_avail
 
 
 #%% This section extracts the values of Scenarios, Periods, Years from data.dat and creates ranges for them
-current_directory = os.path.dirname(os.path.abspath(__file__))
+current_directory = os.getcwd()
 inputs_directory = os.path.join(current_directory, '..', 'Inputs')
 data_file_path = os.path.join(inputs_directory, 'Parameters.dat')
-demand_file_path = os.path.join(inputs_directory, 'Demand.csv')
+demand_file_path = os.path.join(inputs_directory, 'Demand.xlsx')
 res_file_path = os.path.join(inputs_directory, 'RES_Time_Series.csv')
 fuel_file_path = os.path.join(inputs_directory, 'Fuel Specific Cost.csv')
 grid_file_path = os.path.join(inputs_directory, 'Grid Availability.csv')
@@ -62,6 +62,12 @@ for i in range(len(Data_import)):
         Optimization_Goal = int((re.findall('\d+',Data_import[i])[0]))
     if "param: MILP_Formulation" in Data_import[i]:      
         MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: MultiGood_Formulation" in Data_import[i]:      
+        MultiGood_Formulation = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: COP_n" in Data_import[i]:
+        COP_n = float((re.findall('\d+\.*\d+',Data_import[i])[0]))
+    if "param: eta_ice_tank_nom" in Data_import[i]:
+        eta_ice_tank_nom = float((re.findall('\d+\.*\d+',Data_import[i])[0]))
     if "param: Generator_Partial_Load" in Data_import[i]:      
         Generator_Partial_Load = int((re.findall('\d+',Data_import[i])[0]))
     if "param: Plot_Max_Cost" in Data_import[i]:      
@@ -145,6 +151,8 @@ def Initialize_YearUpgrade_Tuples(model):
     print('\nTime horizon (year,investment-step): ' + str(yu_tuples_list))
     return yu_tuples_list
 
+#%% Initializes discount rate if WACC Calculation is chosen by the user
+
 def Initialize_Discount_Rate(model):
     if WACC_Calculation:
         if equity_share == 0:
@@ -157,7 +165,7 @@ def Initialize_Discount_Rate(model):
         WACC = Discount_Rate_default
     return WACC
 
-#%% This section imports the multi-year Demand and Renewable-Energy output and creates a Multi-indexed DataFrame for it
+#%% This section imports the multi-year Demands and Renewable-Energy output and creates a Multi-indexed DataFrame for it
 
 if RE_Supply_Calculation:
     Renewable_Energy = RE_supply().set_index(pd.Index(range(1, n_periods+1)), inplace=False)
@@ -166,45 +174,97 @@ else:
 
 if Demand_Profile_Generation:
     Demand = demand_generation()
+else:
+    Demand = pd.read_excel("Demand.xlsx", sheet_name = "Electric")
+    # Drop columns where all values are NaN, as they don't contain any useful data
+    Demand = Demand.dropna(how='all', axis=1)
 
-Demand = pd.read_csv(demand_file_path, delimiter=';', decimal=',', header=0)
+#%% Reads the demands; returns Null and 0 if the MultiGood_Formulation is switched to 0
     
-# Drop columns where all values are NaN, as they don't contain any useful data
-Demand = Demand.dropna(how='all', axis=1)
+if MultiGood_Formulation:
+    Thermal = pd.read_excel("Demand.xlsx", sheet_name="Thermal")
+    Ice = pd.read_excel("Demand.xlsx", sheet_name="Ice")
     
-Energy_Demand_Series = pd.Series()
-# Adjust the loop to iterate over the actual column names of the DataFrame
-for col in Demand.columns[1:]:  # Skip the first column if it's an index, otherwise adjust as needed
-    dum = Demand[col].reset_index(drop=True)
-    Energy_Demand_Series = pd.concat([Energy_Demand_Series, dum])
+    # Multi-indexed Data Frame for Electric, Thermal and Ice Demand
+    Electric_Energy_Demand_Series = pd.Series()
+    Thermal_Energy_Demand_Series = pd.Series()
+    Ice_Demand_Series = pd.Series()
 
+    # Adjust the loop to iterate over the actual column names of the DataFrame
+    for col in Demand.columns[1:]:  # Skip the first column if it's an index, otherwise adjust as needed
+        dum = Demand[col].reset_index(drop=True)
+        Electric_Energy_Demand_Series = pd.concat([Electric_Energy_Demand_Series, dum])
+    for col in Thermal.columns[1:]:  # Skip the first column if it's an index, otherwise adjust as needed
+        dum = Thermal[col].reset_index(drop=True)
+        Thermal_Energy_Demand_Series = pd.concat([Thermal_Energy_Demand_Series, dum])
+    for col in Ice.columns[1:]:  # Skip the first column if it's an index, otherwise adjust as needed
+        dum = Ice[col].reset_index(drop=True)
+        Ice_Demand_Series = pd.concat([Ice_Demand_Series, dum])    
 
-Energy_Demand = pd.DataFrame(Energy_Demand_Series) 
-frame = [scenario,year,period]
-index = pd.MultiIndex.from_product(frame, names=['scenario','year','period'])
-Energy_Demand.index = index
+    frame = [scenario, year, period]
+    index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
 
-Energy_Demand_2 = pd.DataFrame()
-# Iterate over scenarios and years, assuming scenario and year are defined and match the CSV structure
-for s in scenario:
-    Energy_Demand_Series_2 = pd.Series()
-    for y in year:
-        # Construct the column name as it appears in the CSV headers
-        column_name = f'{(s-1)*len(year) + y}'
-        if column_name in Demand.columns:
-            dum_2 = Demand[column_name].dropna().reset_index(drop=True)
-            Energy_Demand_Series_2 = pd.concat([Energy_Demand_Series_2, dum_2])
-        else:
-            print(f"Warning: Column '{column_name}' does not exist in the Demand DataFrame")
-    Energy_Demand_2[s] = Energy_Demand_Series_2
+    Electric_Energy_Demand = pd.DataFrame(Electric_Energy_Demand_Series)
+    Electric_Energy_Demand.index = index
+    Thermal_Energy_Demand = pd.DataFrame(Thermal_Energy_Demand_Series) 
+    Thermal_Energy_Demand.index = index
+    Ice_Demand = pd.DataFrame(Ice_Demand_Series) 
+    Ice_Demand.index = index
 
-# Create a RangeIndex for Energy_Demand_2
-index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
-Energy_Demand_2.index = index_2
+    Electric_Energy_Demand_2 = pd.DataFrame()
+    Thermal_Energy_Demand_2 = pd.DataFrame()
+    Ice_Demand_2 = pd.DataFrame()
 
+    for s in scenario:
+        Electric_Energy_Demand_Series_2 = pd.Series()
+        Thermal_Energy_Demand_Series_2 = pd.Series()
+        Ice_Demand_Series_2 = pd.Series()
+        for y in year:
+            dum_2 = Demand[(s-1) * n_years + y][:]
+            Electric_Energy_Demand_Series_2 = pd.concat([Electric_Energy_Demand_Series_2, dum_2])
+            dum_2 = Thermal[(s-1) * n_years + y][:]
+            Thermal_Energy_Demand_Series_2 = pd.concat([Thermal_Energy_Demand_Series_2, dum_2])
+            dum_2 = Ice[(s-1) * n_years + y][:]
+            Ice_Demand_Series_2 = pd.concat([Ice_Demand_Series_2, dum_2])      
+        Electric_Energy_Demand_2[s] = Electric_Energy_Demand_Series_2
+        Thermal_Energy_Demand_2[s] = Thermal_Energy_Demand_Series_2
+        Ice_Demand_2[s] = Ice_Demand_Series_2
+
+    # Create a RangeIndex
+    index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
+
+    Electric_Energy_Demand_2.index = index_2
+    Thermal_Energy_Demand_2.index = index_2
+    Ice_Demand_2.index = index_2
+
+else:
+    # Define default values if MultiGood_Formulation switch is zero
+    Thermal = None
+    Ice = None
+    Thermal_Energy_Demand = None
+    Ice_Demand = None
+    Thermal_Energy_Demand_2 = None
+    Ice_Demand_2 = None
+
+#%%
+# Functions to initialize the different demands
 
 def Initialize_Demand(model, s, y, t):
-    return float(Energy_Demand[0][(s,y,t)])
+    return float(Electric_Energy_Demand[0][(s, y, t)])
+
+def Initialize_Thermal_Demand(model, s, y, t):
+    if MultiGood_Formulation:
+        return float(Thermal_Energy_Demand[0][(s, y, t)])
+    else:
+        return 0
+    
+def Initialize_Ice_Demand(model, s, y, t):
+    if MultiGood_Formulation:
+        return float(Ice_Demand[0][(s, y, t)])
+    else:
+        return 0
+
+#%%
 
 def Initialize_RES_Energy(model, s, r, t):
     column = (s - 1) * model.RES_Sources + r
@@ -226,7 +286,7 @@ def Initialize_Battery_Minimum_Capacity(model,ut):
         index = 1
         for i in range(1, Len+1):
             for j in range(1,Periods+1):      
-                Energy_Demand_2.loc[index, 'Grouper'] = Grouper
+                Electric_Energy_Demand_2.loc[index, 'Grouper'] = Grouper
                 index += 1      
             Grouper += 1
     
@@ -235,24 +295,117 @@ def Initialize_Battery_Minimum_Capacity(model,ut):
         for u in range(1, len(model.steps)):
             upgrade_years_list[u] =upgrade_years_list[u-1] + model.Step_Duration
         if model.Steps_Number ==1:
-            Energy_Demand_Upgrade = Energy_Demand_2    
+            Electric_Energy_Demand_Upgrade = Electric_Energy_Demand_2    
         else:
             if ut==1:
                 start = 0
-                Energy_Demand_Upgrade = Energy_Demand_2.loc[start : model.Periods*(upgrade_years_list[ut]-1), :]       
+                Electric_Energy_Demand_Upgrade = Electric_Energy_Demand_2.loc[start : model.Periods*(upgrade_years_list[ut]-1), :]       
             elif ut == len(model.steps):
                 start = model.Periods*(upgrade_years_list[ut-1] -1)+1
-                Energy_Demand_Upgrade = Energy_Demand_2.loc[start :, :]       
+                Electric_Energy_Demand_Upgrade = Electric_Energy_Demand_2.loc[start :, :]       
             else:
                 start = model.Periods*(upgrade_years_list[ut-1] -1)+1
-                Energy_Demand_Upgrade = Energy_Demand_2.loc[start : model.Periods*(upgrade_years_list[ut]-1), :]
+                Electric_Energy_Demand_Upgrade = Electric_Energy_Demand_2.loc[start : model.Periods*(upgrade_years_list[ut]-1), :]
         
-        Period_Energy = Energy_Demand_Upgrade.groupby(['Grouper']).sum()        
+        Period_Energy = Electric_Energy_Demand_Upgrade.groupby(['Grouper']).sum()        
         Period_Average_Energy = Period_Energy.mean()
         Available_Energy = sum(Period_Average_Energy[s]*model.Scenario_Weight[s] for s in model.scenarios) 
         
         return  Available_Energy/(model.Battery_Depth_of_Discharge)
 
+#%% Initialization of ambient temperature, computation of average temp and number of the day when minimum temperature occurs; if RE calculation is enabled the code reads the ambient temperature from NASA Power
+
+if RE_Supply_Calculation == 0:
+    Tamb = pd.read_excel(os.path.join(inputs_directory, 'Tamb.xlsx'))  # Read from inputs if RE calculation is not enabled
+    Tamb_Series = Tamb.stack()  # Stack the DataFrame to create a series
+  
+    frame = [scenario, year, period]
+    index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
+    Tamb = pd.DataFrame(Tamb_Series, index=index, columns=['Tamb'])
+    Tav = Tamb.mean()
+    min_index = Tamb['Tamb'].idxmin()
+    nmin = min_index[2] 
+    
+    # Tamb_2 = pd.DataFrame(index=pd.RangeIndex(1, n_years * n_periods + 1))
+
+    # for s in scenario:
+    #     for y in year:
+    #         for t in period:
+    #             Tamb_2.loc[(s - 1) * n_years * n_periods + (y - 1) * n_periods + t, s] = Tamb.loc[(s, y, t), 'Tamb']
+
+def Initialize_Tamb(model, s, y, t):
+    if RE_Supply_Calculation == 0:
+        return float(Tamb.loc[(s, y, t), 'Tamb'])
+    else:
+        return 0        #in this case if Initialize_Tamb = 0 I will use NASA Power
+
+#%% Initialization of ice tank parameters; the ice tank efficiency empirically decreases with the increase of the ambient temperature
+
+def Initialize_Eta_Ice_Tank(model, s, y, t):
+    if MultiGood_Formulation:
+        
+        eta_ice_tank = np.empty([n_periods])
+        
+        for i in range(n_periods):
+             eta_ice_tank = eta_ice_tank_nom-0.0004*(Tamb-25)     
+        eta_ice_tank = pd.DataFrame(eta_ice_tank)
+        eta_Series = eta_ice_tank.stack().reset_index(drop=True)
+
+        # eta_2 = pd.DataFrame()  
+        
+        # for s in scenario:
+        #     eta_Series_2 = pd.Series()
+        #     for y in year:
+        #         dum_2 = eta_ice_tank[(s-1)*n_years + y][:]
+        #         eta_Series_2 = pd.concat([eta_Series_2,dum_2])
+        #     eta_2.loc[:,s] = eta_Series_2
+        # index_2 = pd.RangeIndex(1,n_years*n_periods+1)
+        # eta_2.index = index_2
+        
+        return float(eta_ice_tank[0][(s,y,t)])
+    
+    else:
+        return 0
+    
+
+def Initialize_Ice_Tank_Minimum_Capacity(model,ut):
+    if model.Ice_Tank_Independence == 0:
+        return 0
+    else: 
+        Periods = model.Ice_Tank_Independence*24
+        Len =  int(model.Periods*model.Years/Periods)
+        Grouper = 1
+        index = 1
+        for i in range(1, Len+1):
+            for j in range(1,Periods+1):      
+                Ice_Demand_2.loc[index, 'Grouper'] = Grouper
+                index += 1      
+            Grouper += 1
+    
+        upgrade_years_list = [1 for i in range(len(model.steps))]
+        
+        for u in range(1, len(model.steps)):
+            upgrade_years_list[u] =upgrade_years_list[u-1] + model.Step_Duration
+        if model.Steps_Number ==1:
+            Ice_Demand_Upgrade = Ice_Demand_2    
+        else:
+            if ut==1:
+                start = 0
+                Ice_Demand_Upgrade = Ice_Demand_2.loc[start : model.Periods*(upgrade_years_list[ut]-1), :]       
+            elif ut == len(model.steps):
+                start = model.Periods*(upgrade_years_list[ut-1] -1)+1
+                Ice_Demand_Upgrade = Ice_Demand_2.loc[start :, :]       
+            else:
+                start = model.Periods*(upgrade_years_list[ut-1] -1)+1
+                Ice_Demand_Upgrade = Ice_Demand_2.loc[start : model.Periods*(upgrade_years_list[ut]-1), :]
+        
+        Period_Ice = Ice_Demand_Upgrade.groupby(['Grouper']).sum()        
+        Period_Average_Ice= Period_Ice.mean()
+        Available_Ice = sum(Period_Average_Ice[s]*model.Scenario_Weight[s] for s in model.scenarios) 
+        
+        return  Available_Ice/(1-model.Ice_Tank_Depth_of_Discharge)
+
+#%%
 
 def Initialize_Fuel_Specific_Cost(model, g, y):
     if Fuel_Specific_Cost_Calculation == 1 and Fuel_Specific_Cost_Import == 1:
@@ -374,3 +527,57 @@ def Initialize_National_Grid_OM_Cost(model):
     Grid_Fixed_Cost = Grid_Fixed_Cost.groupby(level=[0], axis=1, sort=False).sum()
 
     return Grid_Fixed_Cost.iloc[0]['Total']
+
+
+#%% Initialization of COP; it varies according to Tamb and the COP_n (empirical result by Khalaf et al.)
+
+if MultiGood_Formulation:
+
+    for i in range(n_periods):
+        COP=COP_n-0.03*(Tamb.values-25)   
+    COP = pd.DataFrame(COP)
+    
+    COP_Series = COP.stack()
+    COP = pd.DataFrame(COP_Series)
+    frame = [scenario,year,period]
+    index = pd.MultiIndex.from_product(frame, names=['scenario','year','period'])
+    COP.index = index
+       
+    # COP_2 = pd.DataFrame()    
+    # for s in scenario:
+    #     COP_Series_2 = pd.Series()
+    #     for y in year:
+    #         dum_2 = COP[(s-1)*n_years + y][:]
+    #         COP_Series_2 = pd.concat([COP_Series_2,dum_2])
+    #     COP_2.loc[:,s] = COP_Series_2
+    # index_2 = pd.RangeIndex(1,n_years*n_periods+1)
+    # COP_2.index = index_2
+
+
+def Initialize_COP(model, s, y, t):
+    if MultiGood_Formulation:
+        return float(COP[0][(s,y,t)])
+    else:
+        return 0
+
+#%% Initialization of groundwater temperature
+
+if MultiGood_Formulation:
+
+    for i_day in range(n_periods):
+        Tgw = Tav - 3 * np.cos(((2 * np.pi) / 365) * (i_day - nmin))  
+    Tgw = pd.DataFrame(Tgw)
+    
+    Tgw_Series = Tgw.stack()
+    Tgw = pd.DataFrame(Tgw_Series)
+    frame = [scenario,year,period]
+    index = pd.MultiIndex.from_product(frame, names=['scenario','year','period'])
+    Tgw.index = index
+    
+def Initialize_Tgw(model, s, y, t):
+    if MultiGood_Formulation:
+        return float(Tgw[0][(s,y,t)])
+    else:
+        return 0
+
+ 

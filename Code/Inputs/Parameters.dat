@@ -57,7 +57,17 @@ param: Investment_Cost_Limit := 500000.0;
 
 param: Renewable_Penetration := 0.0;
 param: Battery_Independence := 0;
+param: Ice_Tank_Independence := 1;
 
+param: COP_n := 5.0;
+param: eta_ice_tank_nom := 0.99;
+
+param: Ice_Tank_Depth_of_Discharge := 0.2;                       # Depth of discharge of the tank in %
+param: Ice_Tank_Maximum_Discharge_Time:= 3;                      # Maximum time of discharge of the tank in hours
+param: Ice_Tank_Maximum_Charge_Time:= 4; 
+param: Ice_Tank_Specific_Investment_Cost := 1;                   # Investment cost of unit tank USD/kg 
+param: Ice_Tank_Specific_OM_Cost := 1.5;                        
+param: Ice_Tank_Initial_SOC := 1;
 
 param: Lost_Load_Fraction := 0.0;
 param: Lost_Load_Specific_Cost := 0.0;
@@ -66,18 +76,18 @@ param: Solver := 0;
 
 param: Optimization_Goal := 1;
 param: MILP_Formulation := 0;
+param: MultiGood_Formulation := 1;
 param: Generator_Partial_Load := 0;
 param: Multiobjective_Optimization := 0;
 param: Greenfield_Investment := 1;
 param: Plot_Max_Cost := 0;
 param: RE_Supply_Calculation := 0;
-param: Demand_Profile_Generation := 1;
+param: Demand_Profile_Generation := 0;
 param: Grid_Connection := 0;
 param: Grid_Availability_Simulation := 0;
 param: Grid_Connection_Type := 0;
 param: WACC_Calculation := 0;
 param: Model_Components := 0;
-
 
 
 param: Pareto_points := 2;
@@ -196,6 +206,7 @@ param: Maximum_Grid_Power := 80;
 param: Grid_Average_Number_Outages := 43.48;
 param: Grid_Average_Outage_Duration := 455;
 param: National_Grid_Specific_CO2_emissions := 0.1495;
+
 
 param: RES_Colors :=
 1	'FF8800'
