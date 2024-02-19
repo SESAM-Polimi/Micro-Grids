@@ -57,17 +57,7 @@ param: Investment_Cost_Limit := 500000.0;
 
 param: Renewable_Penetration := 0.0;
 param: Battery_Independence := 0;
-param: Ice_Tank_Independence := 1;
-
-param: COP_n := 5.0;
-param: eta_ice_tank_nom := 0.99;
-
-param: Ice_Tank_Depth_of_Discharge := 0.2;                       # Depth of discharge of the tank in %
-param: Ice_Tank_Maximum_Discharge_Time:= 3;                      # Maximum time of discharge of the tank in hours
-param: Ice_Tank_Maximum_Charge_Time:= 4; 
-param: Ice_Tank_Specific_Investment_Cost := 1;                   # Investment cost of unit tank USD/kg 
-param: Ice_Tank_Specific_OM_Cost := 1.5;                        
-param: Ice_Tank_Initial_SOC := 1;
+param: Ice_Tank_Independence := 0;
 
 param: Lost_Load_Fraction := 0.0;
 param: Lost_Load_Specific_Cost := 0.0;
@@ -76,7 +66,6 @@ param: Solver := 0;
 
 param: Optimization_Goal := 1;
 param: MILP_Formulation := 0;
-param: MultiGood_Formulation := 1;
 param: Generator_Partial_Load := 0;
 param: Multiobjective_Optimization := 0;
 param: Greenfield_Investment := 1;
@@ -88,6 +77,7 @@ param: Grid_Availability_Simulation := 0;
 param: Grid_Connection_Type := 0;
 param: WACC_Calculation := 0;
 param: Model_Components := 0;
+param: MultiGood_Ice := 1;
 
 
 param: Pareto_points := 2;
@@ -142,6 +132,17 @@ param: Battery_capacity := 0.0;
 param: BESS_unit_CO2_emission := 0.0;
 
 param: Battery_Nominal_Capacity_milp := 1000.0;
+
+param: COP_n := 5.0;
+param: eta_ice_tank_nom := 0.99;
+
+param: Ice_Tank_Depth_of_Discharge := 0.2;                       
+param: Ice_Tank_Maximum_Discharge_Time:= 3;                      
+param: Ice_Tank_Maximum_Charge_Time:= 4; 
+param: Ice_Tank_Specific_Investment_Cost := 1;                    
+param: Ice_Tank_Specific_OM_Cost := 1.5;                        
+param: Ice_Tank_Initial_SOC := 1;
+param: Ice_Tank_unit_CO2_emission := 0.0;
 
 param: Generator_Types := 1;
 param: Fuel_Specific_Cost_Calculation := 0;

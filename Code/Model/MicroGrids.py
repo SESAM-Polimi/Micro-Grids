@@ -3,7 +3,7 @@ from pyomo.environ import AbstractModel
 from Model_Creation import Model_Creation
 from Model_Resolution import Model_Resolution
 from Results import ResultsSummary, TimeSeries, PrintResults
-from Plots import DispatchPlot, SizePlot , CashFlowPlot
+from Plots import DispatchPlot, DispatchPlot_Ice, SizePlot , CashFlowPlot
 
 
 start = time.time()         # Start time counter
@@ -53,6 +53,7 @@ PlotFormat3 = 'png'                  # Desired extension of the saved file (Vali
 PlotResolution3 = 400                # Plot resolution in dpi (useful only for .png files, .svg and .pdf output a vector plot)
 '''
 DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
+DispatchPlot_Ice(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
 '''
 DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotResolution1,PlotFormat1)
 

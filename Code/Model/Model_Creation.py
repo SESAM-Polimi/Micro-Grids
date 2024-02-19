@@ -112,6 +112,7 @@ def Model_Creation(model):
     model.WACC_Calculation                  = Param(within=Binary)                                    # 1 to select Weighted Average Cost of Capital calculation, 0 otherwise
     model.Fuel_Specific_Cost_Import         = Param(within=Binary)                                    # 1 to import variable fuel specific cost from csv file (only if Fuel_Specific_Cost_Calculation activated)
     model.Fuel_Specific_Cost_Calculation    = Param(within=Binary)                                    # 1 to allows variable fuel specific cost across the years, 0 otherwise
+    model.MultiGood_Ice                     = Param(within=Binary)                                    # 1 to allows Multi-Good optimization with a demand of ice, 0 otherwise
     
     model.Solver                            = Param(within=NonNegativeIntegers)                       # 0 for Gurobi, 1 for GLPK and 2 for HiGHS (currently NOT available)
     
@@ -292,16 +293,16 @@ def Model_Creation(model):
                                model.periods,
                                initialize=Initialize_Eta_Ice_Tank)
     
-    model.Ice_Tank_Depth_of_Discharge     = Param()                                # Depth of discharge of the Ice_Tank in %
-    model.Ice_Tank_Maximum_Discharge_Time = Param(within=NonNegativeReals)         # Maximum time of charge of the Ice_Tank in hours
-    model.Ice_Tank_Maximum_Charge_Time    = Param(within=NonNegativeReals)
-    model.Ice_Tank_Specific_Investment_Cost      = Param(within=NonNegativeReals)         # Investment cost of Ice_Tank in USD/kWh
-    model.Ice_Tank_Specific_OM_Cost       = Param(within=NonNegativeReals)         # % of the total investment spend in operation and management of Ice_Tank unit in each period
-    model.Ice_Tank_Initial_SOC            = Param(within=NonNegativeReals)
-    if  Ice_Tank_Independence > 0:
-        model.Ice_Tank_Independence = Ice_Tank_Independence
-        model.Ice_Tank_Min_Capacity = Param(model.steps, 
-                                           initialize=Initialize_Ice_Tank_Minimum_Capacity)
+    model.Ice_Tank_Depth_of_Discharge       = Param()                                # Depth of discharge of the Ice_Tank in %
+    model.Ice_Tank_Maximum_Discharge_Time   = Param(within=NonNegativeReals)         # Maximum time of charge of the Ice_Tank in hours
+    model.Ice_Tank_Maximum_Charge_Time      = Param(within=NonNegativeReals)
+    model.Ice_Tank_Specific_Investment_Cost = Param(within=NonNegativeReals)         # Investment cost of Ice_Tank in USD/kWh
+    model.Ice_Tank_Specific_OM_Cost         = Param(within=NonNegativeReals)         # % of the total investment spend in operation and management of Ice_Tank unit in each period
+    model.Ice_Tank_Initial_SOC              = Param(within=NonNegativeReals)
+    model.Ice_Tank_Independence             = Ice_Tank_Independence
+    model.Ice_Tank_Min_Capacity             = Param(model.steps, 
+                                                    initialize=Initialize_Ice_Tank_Minimum_Capacity)
+    model.Ice_Tank_unit_CO2_emission        = Param(within=NonNegativeReals)
 
     
     "Parameters of the plot"
@@ -519,4 +520,5 @@ def Model_Creation(model):
                                                     within=NonNegativeReals)
     model.Ice_Tank_Maximum_Charge_Capacity    = Var(model.steps,
                                                     within=NonNegativeReals)
+    model.Ice_Tank_emission                   = Var(within=NonNegativeReals)
 

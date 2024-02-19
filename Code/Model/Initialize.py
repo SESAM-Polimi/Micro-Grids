@@ -62,8 +62,8 @@ for i in range(len(Data_import)):
         Optimization_Goal = int((re.findall('\d+',Data_import[i])[0]))
     if "param: MILP_Formulation" in Data_import[i]:      
         MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
-    if "param: MultiGood_Formulation" in Data_import[i]:      
-        MultiGood_Formulation = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: MultiGood_Ice" in Data_import[i]:      
+        MultiGood_Ice = int((re.findall('\d+',Data_import[i])[0]))
     if "param: COP_n" in Data_import[i]:
         COP_n = float((re.findall('\d+\.*\d+',Data_import[i])[0]))
     if "param: eta_ice_tank_nom" in Data_import[i]:
@@ -181,7 +181,7 @@ else:
 
 #%% Reads the demands; returns Null and 0 if the MultiGood_Formulation is switched to 0
     
-if MultiGood_Formulation:
+if MultiGood_Ice:
     Thermal = pd.read_excel("Demand.xlsx", sheet_name="Thermal")
     Ice = pd.read_excel("Demand.xlsx", sheet_name="Ice")
     
@@ -253,13 +253,13 @@ def Initialize_Demand(model, s, y, t):
     return float(Electric_Energy_Demand[0][(s, y, t)])
 
 def Initialize_Thermal_Demand(model, s, y, t):
-    if MultiGood_Formulation:
+    if MultiGood_Ice:
         return float(Thermal_Energy_Demand[0][(s, y, t)])
     else:
         return 0
     
 def Initialize_Ice_Demand(model, s, y, t):
-    if MultiGood_Formulation:
+    if MultiGood_Ice:
         return float(Ice_Demand[0][(s, y, t)])
     else:
         return 0
@@ -342,7 +342,7 @@ def Initialize_Tamb(model, s, y, t):
 #%% Initialization of ice tank parameters; the ice tank efficiency empirically decreases with the increase of the ambient temperature
 
 def Initialize_Eta_Ice_Tank(model, s, y, t):
-    if MultiGood_Formulation:
+    if MultiGood_Ice:
         
         eta_ice_tank = np.empty([n_periods])
         
@@ -531,7 +531,7 @@ def Initialize_National_Grid_OM_Cost(model):
 
 #%% Initialization of COP; it varies according to Tamb and the COP_n (empirical result by Khalaf et al.)
 
-if MultiGood_Formulation:
+if MultiGood_Ice:
 
     for i in range(n_periods):
         COP=COP_n-0.03*(Tamb.values-25)   
@@ -555,28 +555,33 @@ if MultiGood_Formulation:
 
 
 def Initialize_COP(model, s, y, t):
-    if MultiGood_Formulation:
+    if MultiGood_Ice:
         return float(COP[0][(s,y,t)])
     else:
         return 0
 
 #%% Initialization of groundwater temperature
 
-if MultiGood_Formulation:
+if MultiGood_Ice:
+    Tgw_list = []
 
     for i_day in range(n_periods):
-        Tgw = Tav - 3 * np.cos(((2 * np.pi) / 365) * (i_day - nmin))  
-    Tgw = pd.DataFrame(Tgw)
+        Tgw_day = Tav - 3 * np.cos(((2 * np.pi) / 365) * (i_day - nmin))
+        Tgw_list.append(Tgw_day)
+
+    Tgw = pd.DataFrame(Tgw_list, columns=['Temperature'])
+
+    frame = [scenario, year, list(range(1, n_periods + 1))]  # Assuming n_periods is the length of each scenario/year
+    index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
     
-    Tgw_Series = Tgw.stack()
-    Tgw = pd.DataFrame(Tgw_Series)
-    frame = [scenario,year,period]
-    index = pd.MultiIndex.from_product(frame, names=['scenario','year','period'])
-    Tgw.index = index
-    
+    if len(Tgw) == len(index):
+        Tgw.index = index
+    else:
+        raise ValueError('Length of Tgw and index do not match.')
+
 def Initialize_Tgw(model, s, y, t):
-    if MultiGood_Formulation:
-        return float(Tgw[0][(s,y,t)])
+    if MultiGood_Ice:
+        return float(Tgw.loc[(s, y, t), 'Temperature'])
     else:
         return 0
 

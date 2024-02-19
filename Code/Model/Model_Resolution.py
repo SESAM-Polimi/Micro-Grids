@@ -36,6 +36,8 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
             Optimization_Goal = int((re.findall('\d+',Data_import[i])[0]))
         if "param: MILP_Formulation" in Data_import[i]:      
             MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
+        if "param: MultiGood_Ice" in Data_import[i]:      
+            MultiGood_Ice = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Plot_Max_Cost" in Data_import[i]:      
             Plot_Max_Cost = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Generator_Partial_Load" in Data_import[i]:      
@@ -138,6 +140,52 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                      model.years_steps, 
                                      model.periods, 
                                      rule=C.Energy_balance)
+    
+    if MultiGood_Ice:
+        #%% Coldchain balance
+        model.IceBalance    = Constraint(model.scenarios,
+                                     model.years_steps, 
+                                     model.periods, 
+                                     rule=Ice_balance)
+        model.Iceprod       = Constraint(model.scenarios,
+                                     model.years_steps,
+                                    model.periods,
+                                     rule=Ice_Prod)
+        model.TotIceProd    = Constraint(model.scenarios, 
+                                     model.years_steps, 
+                                     model.periods, 
+                                     rule=Tot_Ice_Prod)
+        model.MaxProduction = Constraint(model.scenarios, 
+                                     model.years_steps, 
+                                     model.periods, 
+                                     rule= Maximum_Consumption)
+        #%%  Ice tank
+        model.TankStateOfCharge         = Constraint(model.scenarios, 
+                                            model.years_steps,
+                                            model.periods,  
+                                            rule=Ice_Tank_State_of_Charge)    
+        model.MaximumIceTankCharge      = Constraint(model.scenarios,
+                                            model.years_steps, 
+                                            model.periods,
+                                            rule=Maximum_Ice_Tank_Charge)    
+        model.MinimumIceTankCharge      = Constraint(model.scenarios,
+                                            model.years_steps, 
+                                            model.periods,
+                                            rule=Minimum_Ice_Tank_Charge)    
+        model.MaxPowerIceTankCharge     = Constraint(model.steps, 
+                                            rule=Max_Power_Ice_Tank_Charge) 
+        model.MaxPowerIceTankDischarge  = Constraint(model.steps,
+                                             rule=Max_Power_Ice_Tank_Discharge)   
+        model.MaxIceTankIn              = Constraint(model.scenarios,
+                                              model.years_steps, 
+                                              model.periods, 
+                                              rule = Max_Ice_Tank_in)
+        model.MaxIceTankOut             = Constraint(model.scenarios,
+                                            model.years_steps, 
+                                            model.periods,
+                                            rule=Max_Ice_Tank_out)
+        model.IceTankMinStepCapacity    = Constraint(model.years_steps, 
+                                            rule=Ice_Tank_Min_Step_Capacity)
 
     "Renewable Energy Sources constraints"
     model.RenewableEnergy = Constraint(model.scenarios,
@@ -298,7 +346,8 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                                 rule=C.Scenario_FUEL_emission) 
     if Model_Components == 0 or Model_Components == 1:
         model.BESSemission   = Constraint(rule=C.BESS_emission)
-    
+    if MultiGood_Ice:
+        model.IceTankemission   = Constraint(rule=C.Ice_Tank_emission)
     model.GRIDemission = Constraint(model.scenarios, 
                                     model.years,
                                     model.periods,
