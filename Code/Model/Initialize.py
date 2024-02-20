@@ -343,27 +343,20 @@ def Initialize_Tamb(model, s, y, t):
 
 def Initialize_Eta_Ice_Tank(model, s, y, t):
     if MultiGood_Ice:
-        
-        eta_ice_tank = np.empty([n_periods])
-        
-        for i in range(n_periods):
-             eta_ice_tank = eta_ice_tank_nom-0.0004*(Tamb-25)     
-        eta_ice_tank = pd.DataFrame(eta_ice_tank)
-        eta_Series = eta_ice_tank.stack().reset_index(drop=True)
+        eta_ice_tank_list = []
 
-        # eta_2 = pd.DataFrame()  
-        
-        # for s in scenario:
-        #     eta_Series_2 = pd.Series()
-        #     for y in year:
-        #         dum_2 = eta_ice_tank[(s-1)*n_years + y][:]
-        #         eta_Series_2 = pd.concat([eta_Series_2,dum_2])
-        #     eta_2.loc[:,s] = eta_Series_2
-        # index_2 = pd.RangeIndex(1,n_years*n_periods+1)
-        # eta_2.index = index_2
-        
-        return float(eta_ice_tank[0][(s,y,t)])
-    
+        for s in scenario:
+            for y in year:
+                for t in period:
+                    # Access the temperature for each specific scenario, year, and period
+                    temperature = Tamb.loc[(s, y, t), 'Tamb']
+                    eta_value = eta_ice_tank_nom - 0.0004 * (temperature - 25)
+                    eta_ice_tank_list.append(eta_value)
+
+        # Create the DataFrame with the corresponding MultiIndex
+        eta_ice_tank_df = pd.DataFrame(eta_ice_tank_list, columns=['eta'])
+        eta_ice_tank_df.index = pd.MultiIndex.from_product([scenario, year, period], names=['scenario', 'year', 'period'])
+        return float(eta_ice_tank_df.loc[(s, y, t), 'eta'])
     else:
         return 0
     
@@ -565,19 +558,22 @@ def Initialize_COP(model, s, y, t):
 if MultiGood_Ice:
     Tgw_list = []
 
-    for i_day in range(n_periods):
-        Tgw_day = Tav - 3 * np.cos(((2 * np.pi) / 365) * (i_day - nmin))
-        Tgw_list.append(Tgw_day)
+    # Iterate over each scenario, year, and period to calculate Tgw for each combination
+    for s in scenario:
+        for y in year:
+            for i_day in period:
+                # Calculate Tgw for the specific day
+                Tgw_day = Tav - 3 * np.cos(((2 * np.pi) / 365) * (i_day - nmin))
+                Tgw_list.append(Tgw_day)
 
+    # Create the DataFrame from the list of Tgw values
     Tgw = pd.DataFrame(Tgw_list, columns=['Temperature'])
 
-    frame = [scenario, year, list(range(1, n_periods + 1))]  # Assuming n_periods is the length of each scenario/year
+    # Create the MultiIndex for the DataFrame
+    frame = [scenario, year, period]  # Ensure these lists are correctly defined
     index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
-    
-    if len(Tgw) == len(index):
-        Tgw.index = index
-    else:
-        raise ValueError('Length of Tgw and index do not match.')
+    Tgw.index = index
+
 
 def Initialize_Tgw(model, s, y, t):
     if MultiGood_Ice:

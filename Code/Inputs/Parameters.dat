@@ -135,6 +135,7 @@ param: Battery_Nominal_Capacity_milp := 1000.0;
 
 param: COP_n := 5.0;
 param: eta_ice_tank_nom := 0.99;
+param: eta_compressor := 0.9;
 
 param: Ice_Tank_Depth_of_Discharge := 0.2;                       
 param: Ice_Tank_Maximum_Discharge_Time:= 3;                      

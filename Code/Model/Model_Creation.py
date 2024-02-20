@@ -130,10 +130,12 @@ def Model_Creation(model):
 
     
     "Parameters of RES Technologies" 
-    model.RES_Names                    = Param(model.renewable_sources)               # RES names
+    model.RES_Names                    = Param(model.renewable_sources,
+                                               within=Any)               # RES names
     model.RES_Nominal_Capacity         = Param(model.renewable_sources,
                                                within=NonNegativeReals)               # Nominal capacity of the RES in W/unit
-    model.RES_Inverter_Efficiency      = Param(model.renewable_sources)               # Efficiency of the inverter in %
+    model.RES_Inverter_Efficiency      = Param(model.renewable_sources,
+                                               within=NonNegativeReals)               # Efficiency of the inverter in %
     model.RES_Specific_Investment_Cost = Param(model.renewable_sources,
                                                within=NonNegativeReals)               # Cost of RES in USD/W
     model.RES_Specific_OM_Cost         = Param(model.renewable_sources,
@@ -182,9 +184,10 @@ def Model_Creation(model):
 
     
     "Parameters of the genset"
-    model.Generator_Names                    = Param(model.generator_types)                # Generators names
+    model.Generator_Names                    = Param(model.generator_types,
+                                                     within=Any)                # Generators names
     model.Generator_Efficiency               = Param(model.generator_types,
-                                                   within=NonNegativeReals)                # Generator efficiency to trasform heat into electricity %
+                                                     within=NonNegativeReals)                # Generator efficiency to trasform heat into electricity %
     model.Generator_Specific_Investment_Cost = Param(model.generator_types,
                                                      within=NonNegativeReals)              # Cost of the diesel generator
     model.Generator_Specific_OM_Cost         = Param(model.generator_types,
@@ -204,6 +207,7 @@ def Model_Creation(model):
     #----------------------------------------------------------------------------------------------
     model.Fuel_Specific_Cost                 = Param(model.generator_types,
                                                      model.years,
+                                                     within=Any,
                                                      initialize=Initialize_Fuel_Specific_Cost)
     model.Fuel_Specific_Start_Cost           = Param(model.generator_types,
                                                      within=NonNegativeReals)
@@ -211,17 +215,22 @@ def Model_Creation(model):
                                                      within=NonNegativeReals)
     model.Generator_Marginal_Cost            = Param(model.generator_types,
                                                      model.years,
+                                                     within=Any,
                                                      initialize=Initialize_Generator_Marginal_Cost)
     model.Generator_Start_Cost                = Param(model.generator_types,
                                                       model.years,
+                                                      within=Any,
                                                       initialize=Initialize_Generator_Start_Cost)
     #------------------------------------------------------------------------------------------------
     model.Fuel_Specific_Cost_1               = Param(model.generator_types,
+                                                     within=Any,
                                                      initialize=Initialize_Fuel_Specific_Cost_1)
     model.Generator_Marginal_Cost_1          = Param(model.generator_types,
+                                                     within=Any,
                                                      initialize=Initialize_Generator_Marginal_Cost_1)
     model.Generator_Marginal_Cost_milp        = Param(model.generator_types,
                                                       model.years,
+                                                      within=Any,
                                                       initialize=Initialize_Generator_Marginal_Cost_milp)
     model.Generator_capacity                  = Param(model.generator_types,
                                                       within=NonNegativeReals)                             # Existing capacity of generator
@@ -234,8 +243,10 @@ def Model_Creation(model):
     model.Generator_pgen                      = Param(model.generator_types,
                                                       within=NonNegativeReals)                             # Percentage of the total operation cost of the generator system at full load
     model.Generator_Start_Cost_1              = Param(model.generator_types,
+                                                      within=Any,
                                                       initialize=Initialize_Generator_Start_Cost_1)          # # Origin of the cost curve of the part load generator
     model.Generator_Marginal_Cost_milp_1      = Param(model.generator_types,
+                                                      within=Any,
                                                       initialize=Initialize_Generator_Marginal_Cost_milp_1)  # Slope of the cost curve of the part load generator
 
 # --- National Grid ---
@@ -252,6 +263,7 @@ def Model_Creation(model):
     model.Grid_Availability                    = Param(model.scenarios,
                                                        model.years,
                                                        model.periods,
+                                                       within=Any,
                                                        initialize = Initialize_Grid_Availability)
     model.Grid_Average_Number_Outages          = Param(within=NonNegativeReals) 
     model.Grid_Average_Outage_Duration         = Param(within=NonNegativeReals)                
@@ -261,8 +273,9 @@ def Model_Creation(model):
     "Parameters of the electricity balance"                  
     model.Energy_Demand           = Param(model.scenarios, 
                                           model.years, 
-                                          model.periods, 
-                                          initialize=Initialize_Demand)             # Energy Energy_Demand in W 
+                                          model.periods,
+                                          within=Reals,
+                                          initialize=Initialize_Electric_Demand)             # Energy Energy_Demand in W 
     model.Lost_Load_Fraction      = Param(within=NonNegativeReals)                  # Lost load maxiumum admittable fraction in %
     model.Lost_Load_Specific_Cost = Param(within=NonNegativeReals)                  # Value of lost load in USD/Wh 
     model.Large_Constant          = Param(within=NonNegativeReals,
@@ -273,34 +286,41 @@ def Model_Creation(model):
     model.Ice_Demand = Param(model.scenarios,
                              model.years,
                              model.periods,
+                             within=Reals,
                              initialize=Initialize_Ice_Demand)
     model.Tamb       = Param(model.scenarios,
                              model.years,
                              model.periods,
+                             within=NonNegativeReals,
                              initialize=Initialize_Tamb)    
     model.COP_n      =  Param(within =NonNegativeReals)
     model.COP        =  Param(model.scenarios,
                              model.years,
                              model.periods,
+                             within=NonNegativeReals,
                              initialize =Initialize_COP)
+    model.eta_compressor   = Param(within= NonNegativeReals)
     model.eta_ice_tank_nom = Param(within= NonNegativeReals)                          # Efficiency of the Ice_Tank in %
     model.Tgw          = Param(model.scenarios,
                                model.years,
                                model. periods,
+                               within=Any,
                                initialize=Initialize_Tgw)
     model.eta_ice_tank = Param(model.scenarios,
                                model.years,
                                model.periods,
+                               within=Any,
                                initialize=Initialize_Eta_Ice_Tank)
     
-    model.Ice_Tank_Depth_of_Discharge       = Param()                                # Depth of discharge of the Ice_Tank in %
+    model.Ice_Tank_Depth_of_Discharge       = Param(within=NonNegativeReals)                                # Depth of discharge of the Ice_Tank in %
     model.Ice_Tank_Maximum_Discharge_Time   = Param(within=NonNegativeReals)         # Maximum time of charge of the Ice_Tank in hours
     model.Ice_Tank_Maximum_Charge_Time      = Param(within=NonNegativeReals)
     model.Ice_Tank_Specific_Investment_Cost = Param(within=NonNegativeReals)         # Investment cost of Ice_Tank in USD/kWh
     model.Ice_Tank_Specific_OM_Cost         = Param(within=NonNegativeReals)         # % of the total investment spend in operation and management of Ice_Tank unit in each period
     model.Ice_Tank_Initial_SOC              = Param(within=NonNegativeReals)
-    model.Ice_Tank_Independence             = Ice_Tank_Independence
+    model.Ice_Tank_Independence             = Param(within=NonNegativeReals)
     model.Ice_Tank_Min_Capacity             = Param(model.steps, 
+                                                    within=NonNegativeReals,
                                                     initialize=Initialize_Ice_Tank_Minimum_Capacity)
     model.Ice_Tank_unit_CO2_emission        = Param(within=NonNegativeReals)
 
