@@ -117,15 +117,18 @@ generator = [i for i in range(1,n_generators+1)]
 
 if Demand_Profile_Generation:
     Demand = demand_generation()
+    print(Demand)
 else:
     Demand = pd.read_excel(demand_file_path, sheet_name = "Electric")
+    Demand = Demand.drop(Demand.columns[0], axis=1)
+    Demand = Demand.iloc[:, :n_years]
     
 # Drop columns where all values are NaN, as they don't contain any useful data
 Demand = Demand.dropna(how='all', axis=1)
-print("Electric demand data loaded and cleaned")
+print("Electric demand data loaded")
 Electric_Energy_Demand_Series = pd.Series(dtype=float)
 # Adjust the loop to iterate over the actual column names of the DataFrame
-for col in Demand.columns[1:]:  # Skip the first column if it's an index, otherwise adjust as needed
+for col in Demand.columns[0:]:
     dum = Demand[col].reset_index(drop=True)
     Electric_Energy_Demand_Series = pd.concat([Electric_Energy_Demand_Series, dum])
 frame = [scenario, year, period]
@@ -151,16 +154,22 @@ print("Aggregated Electric demand dataframes created")
     
 if MultiGood_Ice:
     Ice = pd.read_excel(demand_file_path, sheet_name="Ice")
+    Ice = Ice.drop(Ice.columns[0], axis=1)
+    Ice = Ice.iloc[:, :n_years]
+    print(Ice)
     print("Ice demand data loaded")
     Ice_Demand_Series = pd.Series(dtype=float)
 
-    for col in Ice.columns[1:]:  # Skip the first column if it's an index, otherwise adjust as needed
+    for col in Ice.columns[0:]:  # Skip the first column if it's an index, otherwise adjust as needed
         dum = Ice[col].reset_index(drop=True)
-        Ice_Demand_Series = pd.concat([Ice_Demand_Series, dum])    
+        Ice_Demand_Series = pd.concat([Ice_Demand_Series, dum])
+        print(Ice_Demand_Series)
+        
 
     frame = [scenario, year, period]
     index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
-    Ice_Demand = pd.DataFrame(Ice_Demand_Series) 
+    Ice_Demand = pd.DataFrame(Ice_Demand_Series)
+    print(Ice_Demand)
     Ice_Demand.index = index
     print("Ice demand series created with MultiIndex")
     
