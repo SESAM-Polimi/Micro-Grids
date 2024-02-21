@@ -595,9 +595,9 @@ index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
 grid_availability.index = index
 
 # Create grid_availability_2 DataFrame
-grid_availability_2 = pd.DataFrame()
+grid_availability_2 = pd.DataFrame(dtype=float)
 for s in scenario:
-    grid_availability_Series_2 = pd.Series()
+    grid_availability_Series_2 = pd.Series(dtype=float)
     for y in year:
         if Grid_Connection: dum_2 = availability[str((s - 1) * n_years + y)]
         else: dum_2 = availability[(s - 1) * n_years + y]
