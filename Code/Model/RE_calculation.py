@@ -771,6 +771,8 @@ def P_turb(power_curve, WS_rotor_lst, ro_air_lst, surface_area, drivetrain_effic
         Cp.append(En_WT[ii]/(En_wind[ii]))                                                               #compute hourly turbine power coefficient  
     return En_WT, Cp  
 
+
+
 #%% Main 
 
 def RE_supply():
@@ -874,7 +876,7 @@ def RE_supply():
     elapsed = end - start
     print('\n\nRES time series calculation completed (overall time: ',round(elapsed,0),'s,', round(elapsed/60,1),' m)\n')
 
-    return dataf
+    return dataf, T_amb
 
 if __name__ == "__main__":
     RE_supply()

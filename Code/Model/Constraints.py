@@ -360,6 +360,8 @@ class Constraints_Greenfield():
         if model.Model_Components == 1:
             return model.Salvage_Value ==  SV_Ren_1 + SV_Ren_2 + SV_Ren_3 + SV_Grid 
     
+#%% Energy balance
+
     def Energy_balance(model,s,yt,ut,t): # Energy balance
         Foo = []
         for r in model.renewable_sources:
@@ -398,13 +400,12 @@ class Constraints_Greenfield():
                                                    - model.Energy_Curtailment[s,yt,t] )     
        
 #%% Ice mass balance
-#%% T ground water
 
     def Ice_balance(model,s,yt,ut,t):
         return model.Ice_Demand[s,yt,t] == model.Ice_Prod[s,yt,t] - model.Ice_Tank_Inflow[s,yt,t] + model.Ice_Tank_Outflow[s,yt,t]
 
     def Ice_Prod(model,s,yt,ut,t):
-        return model.Ice_Prod[s,yt,t] == (model.COP[s,yt,t] * model.Compressor_Energy_Consumption[s,yt,t])/((model.eta_compressor*(((4186*(model.Tgw[t]-0)+334000+(0-(-10))*2090)))))
+        return model.Ice_Prod[s,yt,t] == (model.COP[s,yt,t] * model.Compressor_Energy_Consumption[s,yt,t])/((model.eta_compressor*(((4186*(model.Tgw[s,yt,t]-0)+334000+(0-(-10))*2090)))))
 
     def Maximum_Consumption(model,s,yt,ut,t):
         return model.Compressor_Energy_Consumption[s,yt,t] <= model.Compressor_Nominal_Power[ut] * model.Delta_Time
