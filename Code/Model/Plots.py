@@ -143,6 +143,8 @@ def DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolut
         y_Stacked_pos += [y_Grid_in]
     
     y_Demand   = Series.loc[:,idx[:,'Electric Demand',:,:]].values.flatten()/1e3
+    if instance.MultiGood_Ice.value:
+        y_Compressor   = Series.loc[:,idx[:,'Compressor Consumption',:,:]].values.flatten()/1e3
     x_Plot = np.arange(len(y_Demand))
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
         if MILP_Formulation:
@@ -202,6 +204,8 @@ def DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolut
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:            
         ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
     ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
+    if instance.MultiGood_Ice.value:
+        ax1.plot(x_Plot, y_Compressor, '--', linewidth=3, color='red', label='Compressor Demand', zorder=2)
     ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
  
     ax1.set_xlabel('Time [Hours]', fontsize=fontaxis)
@@ -261,31 +265,36 @@ def DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolut
     plot_path = os.path.join(results_directory, 'DispatchPlot.')
     fig.savefig(plot_path + PlotFormat, dpi=PlotResolution, bbox_inches='tight')
 
-def DispatchPlot_Ice(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat): 
-    #%% Importing parameters
+def DispatchPlot_Ice(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat): 
     current_directory = os.path.dirname(os.path.abspath(__file__))
     inputs_directory = os.path.join(current_directory, '..', 'Inputs')
     data_file_path = os.path.join(inputs_directory, 'Parameters.dat')
     Data_import = open(data_file_path).readlines()
 
     for i in range(len(Data_import)):
-        if "param: MILP_Formulation" in Data_import[i]:
-            MILP_Formulation = int((re.findall('\d+', Data_import[i])[0]))
+        if "param: MILP_Formulation" in Data_import[i]:      
+            MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
 
-    print('\nPlots: plotting Ice Dispatch...')
+    print('\nPlots: plotting ice dispatch...')
     fontticks = 18
     fonttitles = 16
     fontaxis = 14
     fontlegend = 14
-
+    
     idx = pd.IndexSlice
     
-    TankNominalCapacity = instance.Ice_Tank_Nominal_Capacity.get_values()
-    IceDemand           = instance.Ice_Demand.extract_values
+    #%% Importing parameters
+    S  = int(instance.Scenarios.extract_values()[None])
+    P  = int(instance.Periods.extract_values()[None])
+    Y  = int(instance.Years.extract_values()[None])
+    ST = int(instance.Steps_Number.extract_values()[None])
+    R  = int(instance.RES_Sources.extract_values()[None])
+    G  = int(instance.Generator_Types.extract_values()[None])
     
     PlotYear  = pd.to_datetime(PlotDate).year - pd.to_datetime(instance.StartDate()).year +1
-    Series = TimeSeries[PlotScenario][PlotYear].copy()
-     #%% Generating years-steps tuples list
+    Series = Time_Series[PlotScenario][PlotYear].copy()
+
+    #%% Generating years-steps tuples list
     steps = [i for i in range(1, ST+1)]
     years_steps_list = [1 for i in range(1, ST+1)]
     s_dur = instance.Step_Duration.value
@@ -308,59 +317,68 @@ def DispatchPlot_Ice(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotReso
             PlotStep = st
     
     #%% Series preparation
-    pDay = 24/instance.Delta_Time()                              # Periods in a day
+    pDay = 24/instance.Delta_Time()                       # Periods in a day
     foo = pd.date_range(start=PlotDate,periods=1,freq='1h')      # Assign the start date of the graphic to a dumb variable
     for x in range(0, instance.Periods()):                       # Find the position from which the plot will start in the Time_Series dataframe
         if foo == Series.index[x]: 
            Start_Plot = x                                        # assign the value of x to the position where the plot will start 
            break
-    End_Plot     = Start_Plot + PlotTime*pDay                    # Create the end of the plot position inside the time_series
+    End_Plot     = Start_Plot + PlotTime*pDay # Create the end of the plot position inside the time_series
     Series.index = range(1,(len(Series)+1))
-    Series       = Series[Start_Plot:int(End_Plot)]              # Extract the data between the start and end position from the Time_Series
+    Series       = Series[Start_Plot:int(End_Plot)] # Extract the data between the start and end position from the Time_Series
     Series.index = pd.date_range(start=PlotDate, periods=PlotTime*pDay, freq=('1h')) 
+   
+    y_IceTank_out      = Series.loc[:,idx[:,'Ice Tank Discharge',:,:]].values.flatten()
+    y_IceTank_in       = -1*Series.loc[:,idx[:,'Ice Tank Charge',:,:]].values.flatten()
+    y_IceProduction    = Series.loc[:,idx[:,'Ice Production',:,:]].values.flatten()
+    IceTankNominalCapacity = instance.Ice_Tank_Nominal_Capacity.get_values()
+    y_IceTank_SOC      = Series.loc[:,idx[:,'Ice Tank SOC',:,:]].values.flatten()
+    
 
-    y_Tank_out    = Series.loc[:,idx[:,'Tank Discharge',:,:]].values.flatten()
-    y_Tank_in     = -1*Series.loc[:,idx[:,'Tank Charge',:,:]].values.flatten()
-    x_Plot = np.arange(len(y_Tank_out))
+    deltaIceTank_pos = y_IceTank_out + y_IceTank_in
+    deltaIceTank_neg = y_IceTank_out + y_IceTank_in
     
-    deltaTank_pos = y_Tank_out + y_Tank_in
-    deltaTank_neg = y_Tank_out + y_Tank_in
-    
-    for i in range(deltaTank_pos.shape[0]):
-        if deltaTank_pos[i] < 0:   
-            deltaTank_pos[i] *= 0
-        if deltaTank_neg[i] > 0:   
-            deltaTank_neg[i] *= 0
+    for i in range(deltaIceTank_pos.shape[0]):
+        if deltaIceTank_pos[i] < 0:   
+            deltaIceTank_pos[i] *= 0
+        if deltaIceTank_neg[i] > 0:   
+            deltaIceTank_neg[i] *= 0
     
     y_Stacked_pos = []
-    y_Stacked_pos += [deltaTank_pos]                   
-    y_Stacked_neg = [deltaTank_neg]
+    y_Stacked_pos += [deltaIceTank_pos]  
+    y_Stacked_neg = [deltaIceTank_neg]
+    y_Stacked_pos += [y_IceProduction]  
     
-    y_IceDemand   = Series.loc[:,idx[:,'Ice Demand',:,:]].values.flatten() 
-    y_Tank_SOC = Series.loc[:,idx[:,'Tank SOC',:,:]].values.flatten()/TankNominalCapacity[PlotStep]*100
-    y_SOC = Series.loc[:,idx[:,'Tank SOC',:,:]].values.flatten()
-    
+    y_Demand   = Series.loc[:,idx[:,'Ice Demand',:,:]].values.flatten()
+    x_Plot = np.arange(len(y_Demand))
+
     #%% Plotting
-   
-    Tank_Color  = instance.Tank_Color() 
-
+    IceTank_Color  = instance.Ice_Tank_Color()
+    IceProduction_Color  = instance.Ice_Production_Color()
+    
     Colors_pos = []
-    Colors_pos += ['#'+Tank_Color]  
-    Colors_neg = ['#'+Tank_Color,]
-    Labels_pos = []
-    Labels_pos += ['Ice Tank']    
-    Labels_neg = ['_nolegend_'] 
+    Colors_pos += ['#'+IceTank_Color]  
+    Colors_pos += ['#'+IceProduction_Color]  
 
+    Colors_neg = []
+    Colors_neg = ['#'+IceTank_Color]
+
+    Labels_pos = []
+    Labels_pos += ['Ice Tank']  
+    Labels_pos += ['Ice Production']  
+
+    Labels_neg = []
+    Labels_neg = ['_nolegend_'] 
 
     fig,ax1 = plt.subplots(nrows=1,ncols=1,figsize = (12,8))
 
-    ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)
+    ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)           
     ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
-    ax1.plot(x_Plot, y_IceDemand, linewidth=4, color='black', label='Demand', zorder=2)
+    ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
     ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
-    ax1.plot(x_Plot, y_SOC, linewidth=3, color='blue', label='Ice in the storage', zorder=2)
+ 
     ax1.set_xlabel('Time [Hours]', fontsize=fontaxis)
-    ax1.set_ylabel('Ice [kg]', fontsize=fontaxis)
+    ax1.set_ylabel('Ice Mass [kg]', fontsize=fontaxis)
         
     "x axis"
     xticks_position = [0]
@@ -381,25 +399,26 @@ def DispatchPlot_Ice(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotReso
     ax1.grid(True, zorder=2) ####
        
     "secondary y axis"
+    if IceTankNominalCapacity[PlotStep] >= 1:
+            ax2=ax1.twinx()
+            ax2.plot(x_Plot, y_IceTank_SOC, '--', color='black', label='Ice in the Tank', zorder=2)
+            ax2.set_ylabel('Ice Tank state of charge [%]', fontsize=fontaxis)
     
-    if TankNominalCapacity[PlotStep] >= 0.01:
-     ax2=ax1.twinx()
-     ax2.plot(x_Plot, y_Tank_SOC, '--', color='black', label='Tank state\nof charge', zorder=2)
-     ax2.set_ylabel('Tank state of charge [%]', fontsize=fontaxis)
-
-     ax2.set_yticks(np.arange(0,100.00000001,20))
-     # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
-     ax2.set_ylim(ymin=0)
-     ax2.set_ylim(ymax=100.00000001)
-     ax2.margins(y=0)
+            ax2.set_yticks(np.arange(0,100.00000001,20))
+            # ax2.set_yticklabels(np.arange(0,100.00000001,20), fontsize=fontticks)
+            ax2.set_ylim(ymin=0)
+            ax2.set_ylim(ymax=100.00000001)
+            ax2.margins(y=0) 
 
     # ax1.text((ax1.get_xticks()[0] + ax1.get_xticks()[1])/4 ,ax1.get_yticks()[-2], 'Plot start at\n'+PlotDate, fontsize=fontlegend)
 
     fig.legend(bbox_to_anchor=(1.19,0.98), ncol=1, fontsize=fontlegend, frameon=True)
-    fig.tight_layout()    
+    fig.tight_layout() 
     
+    
+    current_directory = os.path.dirname(os.path.abspath(__file__))
     results_directory = os.path.join(current_directory, '..', 'Results/Plots')
-    plot_path = os.path.join(results_directory, 'DispatchPlot_Ice.')
+    plot_path = os.path.join(results_directory, 'IceDispatchPlot.')
     fig.savefig(plot_path + PlotFormat, dpi=PlotResolution, bbox_inches='tight')
 
 #%%

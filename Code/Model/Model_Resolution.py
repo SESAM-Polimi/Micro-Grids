@@ -36,6 +36,8 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
             Optimization_Goal = int((re.findall('\d+',Data_import[i])[0]))
         if "param: MILP_Formulation" in Data_import[i]:      
             MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
+        if "param: Grid_Connection" in Data_import[i]:      
+            Grid_Connection = int((re.findall('\d+',Data_import[i])[0]))
         if "param: MultiGood_Ice" in Data_import[i]:      
             MultiGood_Ice = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Plot_Max_Cost" in Data_import[i]:      
@@ -151,10 +153,6 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                          model.years_steps,
                                          model.periods,
                                          rule=C.Ice_Prod)
-        model.TotIceProd    = Constraint(model.scenarios, 
-                                         model.years_steps, 
-                                         model.periods, 
-                                         rule=C.Tot_Ice_Prod)
         model.MaxProduction = Constraint(model.scenarios, 
                                          model.years_steps, 
                                          model.periods, 
@@ -186,6 +184,14 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                                      rule=C.Max_Ice_Tank_out)
         model.IceTankMinStepCapacity    = Constraint(model.years_steps, 
                                                      rule=C.Ice_Tank_Min_Step_Capacity)
+        model.IceTankSingleFlowDischarge   = Constraint(model.scenarios,
+                                                        model.years_steps,
+                                                        model.periods, 
+                                                        rule=C.Ice_Tank_Single_Flow_Discharge)
+        model.IceTankSingleFlowCharge      = Constraint(model.scenarios,
+                                                        model.years_steps,
+                                                        model.periods, 
+                                                        rule=C.Ice_Tank_Single_Flow_Charge)
 
     "Renewable Energy Sources constraints"
     model.RenewableEnergy = Constraint(model.scenarios,
@@ -230,22 +236,14 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
         model.BatteryMinStepCapacity   = Constraint(model.years_steps,                                             
                                                     rule=C.Battery_Min_Step_Capacity)
         if MILP_Formulation:
-            model.BatterySingleFlowDischarge = Constraint(model.scenarios,
-                                                        model.years_steps,
-                                                        model.periods, 
-                                                        rule=C.Battery_Single_Flow_Discharge)
-            model.BatterySingleFlowCharge = Constraint(model.scenarios,
-                                                        model.years_steps,
-                                                        model.periods, 
-                                                        rule=C.Battery_Single_Flow_Charge)
-            model.SingleFlowEnergyToGrid      = Constraint(model.scenarios,
-                                                           model.years_steps,
-                                                           model.periods,
-                                                           rule=C.Single_Flow_Energy_To_Grid)
-            model.SingleFlowEnergyFromGrid  = Constraint(model.scenarios,
-                                                         model.years_steps,
-                                                         model.periods,
-                                                         rule=C.Single_Flow_Energy_From_Grid)
+            model.BatterySingleFlowDischarge   = Constraint(model.scenarios,
+                                                            model.years_steps,
+                                                            model.periods, 
+                                                            rule=C.Battery_Single_Flow_Discharge)
+            model.BatterySingleFlowCharge      = Constraint(model.scenarios,
+                                                            model.years_steps,
+                                                            model.periods, 
+                                                            rule=C.Battery_Single_Flow_Charge)
             
         if Battery_Independence > 0:
             model.BatteryMinCapacity   = Constraint(model.steps, 
@@ -318,15 +316,24 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                                        model.generator_types, 
                                                        rule=C.Generator_Min_Step_Capacity)         
     "Grid constraints"  
-    
-    model.MaximumPowerFromGrid     = Constraint(model.scenarios,
-                                                model.years,
-                                                model.periods,
-                                                rule=C.Maximum_Power_From_Grid)
-    model.MaximumPowerToGrid       = Constraint(model.scenarios,
-                                                model.years,
-                                                model.periods,
-                                                rule=C.Maximum_Power_To_Grid) 
+    if Grid_Connection:
+        model.MaximumPowerFromGrid     = Constraint(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    rule=C.Maximum_Power_From_Grid)
+        model.MaximumPowerToGrid       = Constraint(model.scenarios,
+                                                    model.years,
+                                                    model.periods,
+                                                    rule=C.Maximum_Power_To_Grid)
+        if MILP_Formulation:
+            model.SingleFlowEnergyToGrid          = Constraint(model.scenarios,
+                                                               model.years_steps,
+                                                               model.periods,
+                                                               rule=C.Single_Flow_Energy_To_Grid)
+            model.SingleFlowEnergyFromGrid      = Constraint(model.scenarios,
+                                                             model.years_steps,
+                                                             model.periods,
+                                                             rule=C.Single_Flow_Energy_From_Grid)
 
     
     "Lost load constraints"
@@ -348,12 +355,13 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
         model.BESSemission   = Constraint(rule=C.BESS_emission)
     if MultiGood_Ice:
         model.IceTankemission   = Constraint(rule=C.Ice_Tank_emission)
-    model.GRIDemission = Constraint(model.scenarios, 
-                                    model.years,
-                                    model.periods,
-                                    rule=C.GRID_emission)
-    model.ScenarioGRIDemission = Constraint(model.scenarios,
-                                            rule=C.Scenario_GRID_emission) 
+    if Grid_Connection:
+        model.GRIDemission = Constraint(model.scenarios, 
+                                        model.years,
+                                        model.periods,
+                                        rule=C.GRID_emission)
+        model.ScenarioGRIDemission = Constraint(model.scenarios,
+                                                rule=C.Scenario_GRID_emission) 
     
      
     if Multiobjective_Optimization == 0:

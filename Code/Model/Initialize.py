@@ -117,7 +117,6 @@ generator = [i for i in range(1,n_generators+1)]
 
 if Demand_Profile_Generation:
     Demand = demand_generation()
-    print(Demand)
 else:
     Demand = pd.read_excel(demand_file_path, sheet_name = "Electric")
     Demand = Demand.drop(Demand.columns[0], axis=1)
@@ -150,26 +149,22 @@ index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
 Electric_Energy_Demand_2.index = index_2
 print("Aggregated Electric demand dataframes created")
 
-
     
 if MultiGood_Ice:
     Ice = pd.read_excel(demand_file_path, sheet_name="Ice")
     Ice = Ice.drop(Ice.columns[0], axis=1)
     Ice = Ice.iloc[:, :n_years]
-    print(Ice)
     print("Ice demand data loaded")
     Ice_Demand_Series = pd.Series(dtype=float)
 
     for col in Ice.columns[0:]:  # Skip the first column if it's an index, otherwise adjust as needed
         dum = Ice[col].reset_index(drop=True)
         Ice_Demand_Series = pd.concat([Ice_Demand_Series, dum])
-        print(Ice_Demand_Series)
         
 
     frame = [scenario, year, period]
     index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
     Ice_Demand = pd.DataFrame(Ice_Demand_Series)
-    print(Ice_Demand)
     Ice_Demand.index = index
     print("Ice demand series created with MultiIndex")
     
@@ -221,7 +216,8 @@ def Initialize_Ice_Demand(model, s, y, t):
     Returns:
     float: The ice demand.
     """
-    return float(Ice_Demand[0][(s, y, t)])
+    if MultiGood_Ice: return float(Ice_Demand[0][(s, y, t)])
+    else: None
     
 #%% This section imports or generates the renewables and temperature time series data 
 
@@ -243,9 +239,15 @@ if MultiGood_Ice:
     frame = [scenario, year, period]
     index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
     Tamb = pd.DataFrame(Tamb_Series, index=index, columns=['Tamb'])
-    Tav = Tamb.mean()
-    min_index = Tamb['Tamb'].idxmin()
-    nmin = min_index[2]
+    Tav = []
+    nmin = []
+    for y in Tamb.index.get_level_values('year').unique():
+        # Calculate the mean temperature for the year
+        year_mean = Tamb.xs(y, level='year')['Tamb'].mean()
+        Tav.append(year_mean)
+        # Find the minimum temperature index for the year
+        min_index = Tamb.xs(y, level='year')['Tamb'].idxmin()
+        nmin.append(min_index[1])
     tref = 25 # Reference temperature [°C]
     print("Ambient Temperature Time Series data processed and indexed")
     
@@ -280,7 +282,8 @@ def Initialize_Tamb(model, s, y, t):
     float: The ambient temperature for the given scenario, year, and time period.
     """
     
-    return float(Tamb.loc[(s, y, t), 'Tamb'])
+    if MultiGood_Ice: return float(Tamb.loc[(s, y, t), 'Tamb'])
+    else: None
 
 #%% This section defines the number of investment steps as well as assigns each year to its corresponding step
 
@@ -576,46 +579,40 @@ def Initialize_Generator_Marginal_Cost_milp_1(model,g):
 
 #%% This section initializes parameters related to grid connection
 
-if Grid_Availability_Simulation:
-    grid_avail(average_n_outages, average_outage_duration, n_years, year_grid_connection,n_scenarios, n_periods)
-
 if Grid_Connection:
-    availability = pd.read_csv(grid_file_path, delimiter=';', header=0)
-    # availability_excel = pd.read_excel('Inputs/Generation.xlsx', sheet_name = "Grid Availability")
-else:
-    # Create an empty DataFrame for non-grid connection case, same as before
-    availability = pd.concat([pd.DataFrame(np.zeros(n_years * n_scenarios)).T for _ in range(n_periods)])
-    availability.index = pd.Index(range(n_periods))
-    availability.columns = range(1, (n_years* n_scenarios) + 1)
+    if Grid_Availability_Simulation:
+        grid_avail(average_n_outages, average_outage_duration, n_years, year_grid_connection,n_scenarios, n_periods)
+    else:
+        availability = pd.read_csv(grid_file_path, delimiter=';', header=0)
 
-# Create grid_availability Series
-grid_availability_Series = pd.Series(dtype=float)
-for i in range(1, n_years * n_scenarios + 1):
-    if Grid_Connection and Grid_Availability_Simulation: dum = availability[str(i)]
-    elif Grid_Connection and Grid_Availability_Simulation == 0: dum = availability[str(i)]
-    else: dum = availability[i]
-    grid_availability_Series = pd.concat([grid_availability_Series, dum])
+    # Create grid_availability Series
+    grid_availability_Series = pd.Series(dtype=float)
+    for i in range(1, n_years * n_scenarios + 1):
+        if Grid_Connection and Grid_Availability_Simulation: dum = availability[str(i)]
+        elif Grid_Connection and Grid_Availability_Simulation == 0: dum = availability[str(i)]
+        else: dum = availability[i]
+        grid_availability_Series = pd.concat([grid_availability_Series, dum])
 
-grid_availability = pd.DataFrame(grid_availability_Series)
+    grid_availability = pd.DataFrame(grid_availability_Series)
 
-# Create a MultiIndex
-frame = [scenario, year, period]
-index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
-grid_availability.index = index
+    # Create a MultiIndex
+    frame = [scenario, year, period]
+    index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
+    grid_availability.index = index
 
-# Create grid_availability_2 DataFrame
-grid_availability_2 = pd.DataFrame(dtype=float)
-for s in scenario:
-    grid_availability_Series_2 = pd.Series(dtype=float)
-    for y in year:
-        if Grid_Connection: dum_2 = availability[str((s - 1) * n_years + y)]
-        else: dum_2 = availability[(s - 1) * n_years + y]
-        grid_availability_Series_2 = pd.concat([grid_availability_Series_2, dum_2])
-    grid_availability_2[s] = grid_availability_Series_2
+    # Create grid_availability_2 DataFrame
+    grid_availability_2 = pd.DataFrame(dtype=float)
+    for s in scenario:
+        grid_availability_Series_2 = pd.Series(dtype=float)
+        for y in year:
+            if Grid_Connection: dum_2 = availability[str((s - 1) * n_years + y)]
+            else: dum_2 = availability[(s - 1) * n_years + y]
+            grid_availability_Series_2 = pd.concat([grid_availability_Series_2, dum_2])
+        grid_availability_2[s] = grid_availability_Series_2
 
-# Create a RangeIndex
-index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
-grid_availability_2.index = index_2
+    # Create a RangeIndex
+    index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
+    grid_availability_2.index = index_2
 
 def Initialize_Grid_Availability(model, s, y, t): 
     """
@@ -630,7 +627,8 @@ def Initialize_Grid_Availability(model, s, y, t):
     Returns:
     float: The grid availability for the specified scenario, year, and time period.
     """
-    return float(grid_availability[0][(s,y,t)])
+    if Grid_Connection: return float(grid_availability[0][(s,y,t)])
+    else: None
 
 def Initialize_National_Grid_Inv_Cost(model):
     """
@@ -643,7 +641,8 @@ def Initialize_National_Grid_Inv_Cost(model):
     Returns:
     float: The total investment cost for connecting to the national grid.
     """
-    return model.Grid_Distance*model.Grid_Connection_Cost* model.Grid_Connection/((1+model.Discount_Rate)**(model.Year_Grid_Connection-1))
+    if Grid_Connection: return model.Grid_Distance*model.Grid_Connection_Cost* model.Grid_Connection/((1+model.Discount_Rate)**(model.Year_Grid_Connection-1))
+    else: None
     
 def Initialize_National_Grid_OM_Cost(model):
     """
@@ -672,7 +671,8 @@ def Initialize_National_Grid_OM_Cost(model):
     Grid_Fixed_Cost = pd.concat([Grid_Fixed_Cost, grid_fc], axis=1).fillna(0)
     Grid_Fixed_Cost = Grid_Fixed_Cost.groupby(level=[0], axis=1, sort=False).sum()
 
-    return Grid_Fixed_Cost.iloc[0]['Total']
+    if Grid_Connection: return Grid_Fixed_Cost.iloc[0]['Total']
+    else: None
 
 ################################################################## ICE PRODUCTION ##########################################################################
 
@@ -791,12 +791,10 @@ if MultiGood_Ice:
     # Iterate over each scenario and year
     for s in range(1, n_scenarios + 1):
         for y in range(1, n_years + 1):
-
             # For each day of the year, calculate the daily average groundwater temperature
             for i_day in range(1, 366):  # Assuming 365 days in a year
                 # Calculate daily average temperature based on the day of the year and the day with the lowest temperature
-                Ti = Tav - 3 * np.cos(((2 * np.pi) / 365) * (i_day - nmin))
-
+                Ti = Tav[y-1] - 3 * np.cos(((2 * np.pi) / 365) * (i_day - nmin[y-1]))
                 # Assign this daily average temperature to each hour of the day
                 for hour in range(24):
                     Tgw_array[index] = Ti

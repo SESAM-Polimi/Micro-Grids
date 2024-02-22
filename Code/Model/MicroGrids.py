@@ -53,7 +53,7 @@ PlotFormat3 = 'png'                  # Desired extension of the saved file (Vali
 PlotResolution3 = 400                # Plot resolution in dpi (useful only for .png files, .svg and .pdf output a vector plot)
 '''
 DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
-DispatchPlot_Ice(instance,TimeSeries,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
+DispatchPlot_Ice(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
 '''
 DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotResolution1,PlotFormat1)
 

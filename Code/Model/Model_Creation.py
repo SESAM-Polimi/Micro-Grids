@@ -288,21 +288,23 @@ def Model_Creation(model):
     model.Ice_Demand = Param(model.scenarios,
                              model.years,
                              model.periods,
-                             within=Reals,
+                             within=Any,
                              initialize=Initialize_Ice_Demand)
     model.Tamb       = Param(model.scenarios,
                              model.years,
                              model.periods,
-                             within=NonNegativeReals,
+                             within=Any,
                              initialize=Initialize_Tamb)    
     model.COP_n      =  Param(within =NonNegativeReals)
     model.COP        =  Param(model.scenarios,
                              model.years,
                              model.periods,
-                             within=NonNegativeReals,
+                             within=Any,
                              initialize =Initialize_COP)
-    model.eta_compressor   = Param(within= NonNegativeReals)                          # Efficiency of the compressor within the refrigeration cycle [%]
-    model.eta_ice_tank_nom = Param(within= NonNegativeReals)                          # Efficiency of the Ice_Tank [%]
+    model.eta_compressor                        = Param(within= NonNegativeReals)                          # Efficiency of the compressor within the refrigeration cycle [%]
+    model.Compressor_Specific_Investment_Cost   = Param(within= NonNegativeReals)
+    model.Compressor_Specific_OM_Cost           = Param(within= NonNegativeReals)
+    model.eta_ice_tank_nom                      = Param(within= NonNegativeReals)                          # Efficiency of the Ice_Tank [%]
     model.Tgw              = Param(model.scenarios,
                                model.years,
                                model.periods,
@@ -336,6 +338,7 @@ def Model_Creation(model):
     model.Energy_To_Grid_Color   = Param(within=Any)                                               # HEX color codes for Energy to grid
     model.Energy_From_Grid_Color = Param(within=Any)                                               # HEX color codes for Energy from grid
     model.Ice_Tank_Color         = Param(within=Any)
+    model.Ice_Production_Color         = Param(within=Any)
 
     
 #%% VARIABLES
@@ -543,4 +546,8 @@ def Model_Creation(model):
     model.Ice_Tank_Maximum_Charge_Capacity    = Var(model.steps,
                                                     within=NonNegativeReals)
     model.Ice_Tank_emission                   = Var(within=NonNegativeReals)
+    model.Single_Flow_Ice_Tank                = Var(model.scenarios, 
+                                                model.years, 
+                                                model.periods,
+                                                within = Binary)
 
