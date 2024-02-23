@@ -1117,7 +1117,7 @@ def EnergySystemSize(instance):
      if instance.MultiGood_Ice.value == 1:
          Compressor_Nominal_Capacity = instance.Compressor_Nominal_Power.get_values()
          Compressor_Size = pd.DataFrame()
-         ice_tank_size = pd.DataFrame(['Compressor', 'kW', Compressor_Nominal_Capacity[1]]/1e3).T.set_index([0,1])
+         ice_tank_size = pd.DataFrame(['Compressor', 'kW', Compressor_Nominal_Capacity[1]/1e3]).T.set_index([0,1])
          if ST == 1:
             ice_tank_size.columns = ['Total']
          else:

@@ -186,11 +186,20 @@ class Constraints_Greenfield():
         Electricity_Revenues = model.Total_Revenues_Act[s]
         
         if model.Model_Components == 0:
-            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+            if model.Grid_Connection == 1:
+                return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+            else:
+                return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost
         if model.Model_Components == 1:
-            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Electricity_Cost - Electricity_Revenues
+            if model.Grid_Connection == 1:
+                return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s] + Electricity_Cost - Electricity_Revenues
+            else:
+                return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Battery_Replacement_Cost_Act[s] + model.Scenario_Lost_Load_Cost_Act[s]
         if model.Model_Components == 2:
-            return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+            if model.Grid_Connection == 1:
+                return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+            else: 
+                return model.Total_Scenario_Variable_Cost_Act[s] == model.Operation_Maintenance_Cost_Act + model.Scenario_Lost_Load_Cost_Act[s] + Fuel_Cost
     
     def Scenario_Variable_Cost_NonAct(model, s): 
         foo = []
@@ -201,12 +210,21 @@ class Constraints_Greenfield():
         Electricity_Revenues = model.Total_Revenues_NonAct[s]
         
         if model.Model_Components == 0:
-            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+            if model.Grid_Connection == 1:
+                return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+            else:
+                return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost
         if model.Model_Components == 1:
-            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Electricity_Cost - Electricity_Revenues
+            if model.Grid_Connection == 1:
+                return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s] + Electricity_Cost - Electricity_Revenues
+            else:
+                return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Battery_Replacement_Cost_NonAct[s] + model.Scenario_Lost_Load_Cost_NonAct[s]
         if model.Model_Components == 2:
-            return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
-    
+            if model.Grid_Connection == 1:
+                return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost + Electricity_Cost - Electricity_Revenues
+            else: 
+                return model.Total_Scenario_Variable_Cost_NonAct[s] == model.Operation_Maintenance_Cost_NonAct + model.Scenario_Lost_Load_Cost_NonAct[s] + Fuel_Cost
+        
     def Scenario_Lost_Load_Cost_Act(model,s):    
         Cost_Lost_Load = 0         
         for y in range(1, model.Years +1):
@@ -250,7 +268,7 @@ class Constraints_Greenfield():
                 Fuel_Cost_Tot += Num
             return model.Total_Fuel_Cost_NonAct[s,g] == Fuel_Cost_Tot
 
-    if Grid_Connection:
+    if Grid_Connection == 1:
         def Total_Electricity_Cost_Act(model,s): 
             Electricity_Cost_Tot = 0
             for y in range(1, model.Years +1):
@@ -381,36 +399,37 @@ class Constraints_Greenfield():
         for g in model.generator_types:
             foo.append((s,yt,g,t))    
         Total_Generator_Energy = sum(model.Generator_Energy_Production[i] for i in foo)
-        En_From_Grid = model.Energy_From_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
-        En_To_Grid = model.Energy_To_Grid[s,yt,t]*model.Grid_Availability[s,yt,t]
+        En_From_Grid = model.Energy_From_Grid[s,yt,t]*model.Grid_Availability[s,yt,t] if model.Grid_Connection == 1 else 0
+        En_To_Grid = model.Energy_To_Grid[s,yt,t]*model.Grid_Availability[s,yt,t] if model.Grid_Connection == 1 else 0
+            
        
         if model.Model_Components == 0:
            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
                                                    + Total_Generator_Energy
-                                                   + En_From_Grid
+                                                   + En_From_Grid 
                                                    - En_To_Grid 
                                                    + model.Battery_Outflow[s,yt,t]
                                                    - model.Battery_Inflow[s,yt,t] 
                                                    + model.Lost_Load[s,yt,t]  
                                                    - model.Energy_Curtailment[s,yt,t]
-                                                   - model.Compressor_Energy_Consumption[s,yt,t] if model.MultiGood_Ice else None)     
+                                                   - model.Compressor_Energy_Consumption[s,yt,t] if model.MultiGood_Ice == 1 else 0)     
         if model.Model_Components == 1:
            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
-                                                   + En_From_Grid
+                                                   + En_From_Grid 
                                                    - En_To_Grid 
                                                    + model.Battery_Outflow[s,yt,t]
                                                    - model.Battery_Inflow[s,yt,t] 
                                                    + model.Lost_Load[s,yt,t]  
                                                    - model.Energy_Curtailment[s,yt,t]
-                                                   - model.Compressor_Energy_Consumption[s,yt,t] if model.MultiGood_Ice else None)     
+                                                   - model.Compressor_Energy_Consumption[s,yt,t] if model.MultiGood_Ice == 1 else 0)     
         if model.Model_Components == 2:
            return model.Energy_Demand[s,yt,t] == (Total_Renewable_Energy 
                                                    + Total_Generator_Energy
-                                                   + En_From_Grid
+                                                   + En_From_Grid 
                                                    - En_To_Grid 
                                                    + model.Lost_Load[s,yt,t]  
                                                    - model.Energy_Curtailment[s,yt,t]
-                                                   - model.Compressor_Energy_Consumption[s,yt,t] if model.MultiGood_Ice else None)     
+                                                   - model.Compressor_Energy_Consumption[s,yt,t] if model.MultiGood_Ice == 1 else 0)     
        
 #%% Ice mass balance
 

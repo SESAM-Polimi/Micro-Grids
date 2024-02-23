@@ -90,12 +90,15 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
         model.FuelCostTotalAct             = Constraint(model.scenarios, 
                                                 model.generator_types,
                                                 rule=C.Total_Fuel_Cost_Act)
-    model.TotalElectricityCostAct      = Constraint(model.scenarios,
-                                                    rule=C.Total_Electricity_Cost_Act)   
-    model.TotalRevenuesAct             = Constraint(model.scenarios,
-                                                    rule=C.Total_Revenues_Act)
-    model.TotalRevenuesNonAct          = Constraint(model.scenarios,
-                                                    rule=C.Total_Revenues_NonAct)    
+    if Grid_Connection == 1:
+        model.TotalElectricityCostAct      = Constraint(model.scenarios,
+                                                        rule=C.Total_Electricity_Cost_Act) 
+        model.TotalElectricityCostNonAct   = Constraint(model.scenarios,
+                                                        rule=C.Total_Electricity_Cost_NonAct) 
+        model.TotalRevenuesAct             = Constraint(model.scenarios,
+                                                        rule=C.Total_Revenues_Act)
+        model.TotalRevenuesNonAct          = Constraint(model.scenarios,
+                                                        rule=C.Total_Revenues_NonAct)    
     if Model_Components == 0 or Model_Components == 1:
         
         model.BatteryReplacementCostAct    = Constraint(model.scenarios,
@@ -107,9 +110,7 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
     if Model_Components == 0 or Model_Components == 2:
         model.FuelCostTotalNonAct          = Constraint(model.scenarios, 
                                                         model.generator_types,
-                                                        rule=C.Total_Fuel_Cost_NonAct)
-    model.TotalElectricityCostNonAct   = Constraint(model.scenarios,
-                                                    rule=C.Total_Electricity_Cost_NonAct)     
+                                                        rule=C.Total_Fuel_Cost_NonAct)    
     if Model_Components == 0 or Model_Components == 1:
         model.BatteryReplacementCostNonAct = Constraint(model.scenarios,
                                                         rule=C.Battery_Replacement_Cost_NonAct) 
@@ -184,14 +185,15 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                                      rule=C.Max_Ice_Tank_out)
         model.IceTankMinStepCapacity    = Constraint(model.years_steps, 
                                                      rule=C.Ice_Tank_Min_Step_Capacity)
-        model.IceTankSingleFlowDischarge   = Constraint(model.scenarios,
-                                                        model.years_steps,
-                                                        model.periods, 
-                                                        rule=C.Ice_Tank_Single_Flow_Discharge)
-        model.IceTankSingleFlowCharge      = Constraint(model.scenarios,
-                                                        model.years_steps,
-                                                        model.periods, 
-                                                        rule=C.Ice_Tank_Single_Flow_Charge)
+        if MILP_Formulation:
+            model.IceTankSingleFlowDischarge   = Constraint(model.scenarios,
+                                                            model.years_steps,
+                                                            model.periods, 
+                                                            rule=C.Ice_Tank_Single_Flow_Discharge)
+            model.IceTankSingleFlowCharge      = Constraint(model.scenarios,
+                                                            model.years_steps,
+                                                            model.periods, 
+                                                            rule=C.Ice_Tank_Single_Flow_Charge)
 
     "Renewable Energy Sources constraints"
     model.RenewableEnergy = Constraint(model.scenarios,

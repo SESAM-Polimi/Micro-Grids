@@ -19,6 +19,7 @@ Based on the original model by:
 import pandas as pd, numpy as np
 import re
 import os
+import matplotlib.pyplot as plt
 
 from RE_calculation import RE_supply
 from Demand import demand_generation
@@ -112,19 +113,51 @@ year = [i for i in range(1,n_years+1)]
 period = [i for i in range(1,n_periods+1)]
 generator = [i for i in range(1,n_generators+1)]
 
+current_directory = os.path.dirname(os.path.abspath(__file__))
+results_directory = os.path.join(current_directory, '..', 'Results/Plots')
 
-#%% This section imports or generates the different types of demands 
+
+#%% This section imports, generates and plots the different types of demands
+
+def plot_average_daily_demand(demand_data, output_path):
+    n_years = demand_data.shape[1]
+    hours_per_day = 24
+
+    plt.figure(figsize=(12, 6))
+
+    # Calculate and plot average daily demand for each year
+    for year in range(n_years):
+        # Reshape yearly data into days and hours (assuming 365 days per year)
+        yearly_data = demand_data.iloc[:, year].values.reshape(-1, hours_per_day)
+        # Calculate average demand for each hour
+        average_daily_demand = np.mean(yearly_data, axis=0) / 1000
+        plt.plot(average_daily_demand, label=f'Year {year + 1}')
+
+    plt.title('Average Daily Electric Demand for Each Year')
+    plt.xlabel('Hour of Day')
+    plt.ylabel('Power [kW]')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(output_path)
+    plt.close() 
 
 if Demand_Profile_Generation:
     Demand = demand_generation()
+    print("Electric demand data generated using archtypes")
+    plot_path = os.path.join(results_directory, 'Electric Demand.png')
+    plot_average_daily_demand(Demand, plot_path)
+    print("Electric demand plot saved in Results/Plots")
 else:
     Demand = pd.read_excel(demand_file_path, sheet_name = "Electric")
     Demand = Demand.drop(Demand.columns[0], axis=1)
     Demand = Demand.iloc[:, :n_years]
+    print("Electric demand data loaded")
+    plot_path = os.path.join(results_directory, 'Electric Demand.png')
+    plot_average_daily_demand(Demand, plot_path)
+    print("Electric demand plot saved in Results/Plots")
     
 # Drop columns where all values are NaN, as they don't contain any useful data
 Demand = Demand.dropna(how='all', axis=1)
-print("Electric demand data loaded")
 Electric_Energy_Demand_Series = pd.Series(dtype=float)
 # Adjust the loop to iterate over the actual column names of the DataFrame
 for col in Demand.columns[0:]:
@@ -134,7 +167,6 @@ frame = [scenario, year, period]
 index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
 Electric_Energy_Demand = pd.DataFrame(Electric_Energy_Demand_Series)
 Electric_Energy_Demand.index = index
-print("Electric demand series created with MultiIndex")
 
 Electric_Energy_Demand_2 = pd.DataFrame()
 for s in scenario:
@@ -147,14 +179,37 @@ for s in scenario:
 # Create a RangeIndex
 index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
 Electric_Energy_Demand_2.index = index_2
-print("Aggregated Electric demand dataframes created")
 
+def plot_average_daily_ice_demand(demand_data, output_path):
+    n_years = demand_data.shape[1]
+    hours_per_day = 24
+
+    plt.figure(figsize=(12, 6))
+
+    # Calculate and plot average daily demand for each year
+    for year in range(n_years):
+        # Reshape yearly data into days and hours (assuming 365 days per year)
+        yearly_data = demand_data.iloc[:, year].values.reshape(-1, hours_per_day)
+        # Calculate average demand for each hour
+        average_daily_demand = np.mean(yearly_data, axis=0)
+        plt.plot(average_daily_demand, label=f'Year {year + 1}')
+
+    plt.title('Average Daily Ice Demand for Each Year')
+    plt.xlabel('Hour of Day')
+    plt.ylabel('Ice Mass [kg]')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(output_path)
+    plt.close() 
     
 if MultiGood_Ice:
     Ice = pd.read_excel(demand_file_path, sheet_name="Ice")
     Ice = Ice.drop(Ice.columns[0], axis=1)
     Ice = Ice.iloc[:, :n_years]
     print("Ice demand data loaded")
+    plot_path = os.path.join(results_directory, 'Ice Demand.png')
+    plot_average_daily_ice_demand(Ice, plot_path)
+    print("Ice demand plot saved in Results/Plots")
     Ice_Demand_Series = pd.Series(dtype=float)
 
     for col in Ice.columns[0:]:  # Skip the first column if it's an index, otherwise adjust as needed
@@ -166,7 +221,6 @@ if MultiGood_Ice:
     index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
     Ice_Demand = pd.DataFrame(Ice_Demand_Series)
     Ice_Demand.index = index
-    print("Ice demand series created with MultiIndex")
     
     Ice_Demand_2 = pd.DataFrame()
 
@@ -180,11 +234,11 @@ if MultiGood_Ice:
     # Create a RangeIndex
     index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
     Ice_Demand_2.index = index_2
-    print("Aggregated Ice demand dataframes created")
 else:
     Ice = None
     Ice_Demand = None
     Ice_Demand_2 = None
+    
     
 "Electric Demand"
 def Initialize_Electric_Demand(model, s, y, t):
@@ -220,6 +274,25 @@ def Initialize_Ice_Demand(model, s, y, t):
     else: None
     
 #%% This section imports or generates the renewables and temperature time series data 
+
+def plot_renewable_energy_availability(renewable_energy_data, output_path):
+    plt.figure(figsize=(12, 6))
+
+    # Assuming the first column is for solar (yellow) and the second is for wind (blue)
+    colors = ['yellow', 'blue']
+    labels = ['Solar', 'Wind']
+
+    # Plotting each resource as an area plot
+    for i, col in enumerate(renewable_energy_data.columns):
+        plt.fill_between(renewable_energy_data.index, renewable_energy_data[col], label=labels[i], color=colors[i], alpha=0.5)
+
+    plt.title('Renewable Energy Resource Availability')
+    plt.xlabel('Hour of Year')
+    plt.ylabel('Resource Availability')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(output_path)
+    plt.close()
 
 if RE_Supply_Calculation == 0: 
     Renewable_Energy = pd.read_csv(res_file_path, delimiter=';', decimal=',', header=0)
