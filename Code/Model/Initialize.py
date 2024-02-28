@@ -5,11 +5,13 @@ Linear Programming framework for microgrids least-cost sizing,
 able to account for time-variable load demand evolution and capacity expansion.
 
 Authors: 
+    Alessandro Onori   - Department of Energy, Politecnico di Milano
     Giulia Guidicini   - Department of Energy, Politecnico di Milano 
     Lorenzo Rinaldi    - Department of Energy, Politecnico di Milano
     Nicolò Stevanato   - Department of Energy, Politecnico di Milano / Fondazione Eni Enrico Mattei
     Francesco Lombardi - Department of Energy, Politecnico di Milano
     Emanuela Colombo   - Department of Energy, Politecnico di Milano
+    
 Based on the original model by:
     Sergio Balderrama  - Department of Mechanical and Aerospace Engineering, University of Liège / San Simon University, Centro Universitario de Investigacion en Energia
     Sylvain Quoilin    - Department of Mechanical Engineering Technology, KU Leuven
@@ -17,33 +19,36 @@ Based on the original model by:
 
 
 import pandas as pd, numpy as np
+import matplotlib.pyplot as plt
 import re
 import os
-import matplotlib.pyplot as plt
-
 from RE_calculation import RE_supply
 from Demand import demand_generation
 from Grid_Availability import grid_availability as grid_avail
 
-# Global constants
-current_directory = os.getcwd()
+
+#%% This section extracts the values of Scenarios, Periods, Years from data.dat and creates ranges for them
+
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
 inputs_directory = os.path.join(current_directory, '..', 'Inputs')
 data_file_path = os.path.join(inputs_directory, 'Parameters.dat')
-demand_file_path = os.path.join(inputs_directory, 'Demand.xlsx')
-tamb_file_path = os.path.join(inputs_directory, 'Tamb.xlsx')
+demand_file_path = os.path.join(inputs_directory, 'Demand.csv')
+ice_file_path = os.path.join(inputs_directory, 'Ice.csv')
 res_file_path = os.path.join(inputs_directory, 'RES_Time_Series.csv')
+tamb_file_path = os.path.join(inputs_directory, 'Tamb.csv')
 fuel_file_path = os.path.join(inputs_directory, 'Fuel Specific Cost.csv')
 grid_file_path = os.path.join(inputs_directory, 'Grid Availability.csv')
+results_directory = os.path.join(current_directory, '..', 'Results')
+plots_directory = os.path.join(current_directory, '..', 'Results/Plots')
 
-#%% This section extracts the values of Scenarios, Periods, Years and useful Parameters from Parameters.dat (inputs)
-
-"Extract relevant inputs parameters from Parameters.dat file"
 Data_import = open(data_file_path).readlines()
 
 Fuel_Specific_Start_Cost = []
 Fuel_Specific_Cost_Rate = []
 
 for i in range(len(Data_import)):
+    # Project Settings
     if "param: Scenarios" in Data_import[i]:
         n_scenarios = int((re.findall('\d+',Data_import[i])[0]))
     if "param: Years" in Data_import[i]:
@@ -56,18 +61,26 @@ for i in range(len(Data_import)):
         step_duration = int((re.findall('\d+',Data_import[i])[0]))
     if "param: Min_Last_Step_Duration" in Data_import[i]:
         min_last_step_duration = int((re.findall('\d+',Data_import[i])[0]))
+    # Optimization Constraints
     if "param: Battery_Independence" in Data_import[i]:      
         Battery_Independence = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: Renewable_Penetration" in Data_import[i]:      
+        Renewable_Penetration = float((re.findall("\d+\.\d+|\d+",Data_import[i])[0]))
+    if "param: Greenfield_Investment" in Data_import[i]:      
+        Greenfield_Investment = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: Multiobjective_Optimization" in Data_import[i]:      
+        Multiobjective_Optimization = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: Optimization_Goal" in Data_import[i]:      
+        Optimization_Goal = int((re.findall('\d+',Data_import[i])[0]))
+    # Model Switches
     if "param: MILP_Formulation" in Data_import[i]:      
         MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
     if "param: MultiGood_Ice" in Data_import[i]:      
         MultiGood_Ice = int((re.findall('\d+',Data_import[i])[0]))
-    if "param: COP_n" in Data_import[i]:
-        COP_n = float((re.findall('\d+\.*\d+',Data_import[i])[0]))
-    if "param: eta_ice_tank_nom" in Data_import[i]:
-        eta_ice_tank_nom = float((re.findall('\d+\.*\d+',Data_import[i])[0]))
     if "param: Generator_Partial_Load" in Data_import[i]:      
         Generator_Partial_Load = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: Plot_Max_Cost" in Data_import[i]:      
+        Plot_Max_Cost = int((re.findall('\d+',Data_import[i])[0]))
     if "param: RE_Supply_Calculation" in Data_import[i]:      
         RE_Supply_Calculation = int((re.findall('\d+',Data_import[i])[0]))
     if "param: Demand_Profile_Generation" in Data_import[i]:      
@@ -76,18 +89,25 @@ for i in range(len(Data_import)):
         Fuel_Specific_Cost_Calculation = int((re.findall('\d+',Data_import[i])[0]))
     if "param: Fuel_Specific_Cost_Import" in Data_import[i]:      
         Fuel_Specific_Cost_Import = int((re.findall('\d+',Data_import[i])[0]))
-    if "param: Grid_Average_Number_Outages" in Data_import[i]:      
-        average_n_outages = int((re.findall('\d+',Data_import[i])[0]))
-    if "param: Grid_Average_Outage_Duration" in Data_import[i]:       
-        average_outage_duration = int((re.findall('\d+',Data_import[i])[0]))
     if "param: Grid_Connection " in Data_import[i]:      
         Grid_Connection = int((re.findall('\d+',Data_import[i])[0]))
     if "param: Grid_Availability_Simulation" in Data_import[i]:      
         Grid_Availability_Simulation = int((re.findall('\d+',Data_import[i])[0]))
-    if "param: Year_Grid_Connection " in Data_import[i]:      
-        year_grid_connection = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: Model_Components " in Data_import[i]:      
+        Model_Components = int((re.findall('\d+',Data_import[i])[0]))
     if "param: WACC_Calculation " in Data_import[i]:      
         WACC_Calculation = int((re.findall('\d+',Data_import[i])[0]))
+    # Specific Parameters values
+    if "param: COP_n" in Data_import[i]:
+        COP_n = float((re.findall('\d+\.*\d+',Data_import[i])[0]))
+    if "param: eta_ice_tank_nom" in Data_import[i]:
+        eta_ice_tank_nom = float((re.findall('\d+\.*\d+',Data_import[i])[0]))
+    if "param: Grid_Average_Number_Outages" in Data_import[i]:      
+        average_n_outages = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: Grid_Average_Outage_Duration" in Data_import[i]:       
+        average_outage_duration = int((re.findall('\d+',Data_import[i])[0]))
+    if "param: Year_Grid_Connection " in Data_import[i]:      
+        year_grid_connection = int((re.findall('\d+',Data_import[i])[0]))
     if "param: cost_of_equity" in Data_import[i]:      
         cost_of_equity = float((re.findall("\d+\.\d+|\d+",Data_import[i])[0]))
     if "param: cost_of_debt" in Data_import[i]:      
@@ -112,10 +132,6 @@ scenario = [i for i in range(1,n_scenarios+1)]
 year = [i for i in range(1,n_years+1)]
 period = [i for i in range(1,n_periods+1)]
 generator = [i for i in range(1,n_generators+1)]
-
-current_directory = os.path.dirname(os.path.abspath(__file__))
-results_directory = os.path.join(current_directory, '..', 'Results/Plots')
-
 
 #%% This section imports, generates and plots the different types of demands
 
@@ -143,19 +159,19 @@ def plot_average_daily_demand(demand_data, output_path):
 
 if Demand_Profile_Generation:
     Demand = demand_generation()
-    print("Electric demand data generated using archtypes")
-    plot_path = os.path.join(results_directory, 'Electric Demand.png')
+    print("Electric demand data generated endogenously using archtypes")
+    plot_path = os.path.join(plots_directory, 'Electric Demand.png')
     plot_average_daily_demand(Demand, plot_path)
     print("Electric demand plot saved in Results/Plots")
 else:
-    Demand = pd.read_excel(demand_file_path, sheet_name = "Electric")
+    Demand = pd.read_csv(demand_file_path, delimiter=';', decimal=',', header=0)
     Demand = Demand.drop(Demand.columns[0], axis=1)
     Demand = Demand.iloc[:, :n_years]
-    print("Electric demand data loaded")
-    plot_path = os.path.join(results_directory, 'Electric Demand.png')
+    print("Electric demand data loaded exogenously from excel file")
+    plot_path = os.path.join(plots_directory, 'Electric Demand.png')
     plot_average_daily_demand(Demand, plot_path)
     print("Electric demand plot saved in Results/Plots")
-    
+
 # Drop columns where all values are NaN, as they don't contain any useful data
 Demand = Demand.dropna(how='all', axis=1)
 Electric_Energy_Demand_Series = pd.Series(dtype=float)
@@ -169,16 +185,39 @@ Electric_Energy_Demand = pd.DataFrame(Electric_Energy_Demand_Series)
 Electric_Energy_Demand.index = index
 
 Electric_Energy_Demand_2 = pd.DataFrame()
+# Iterate over scenarios and years, assuming scenario and year are defined and match the CSV structure
 for s in scenario:
-    Electric_Energy_Demand_Series_2 = pd.Series(dtype=float)
+    Electric_Energy_Demand_Series_2 = pd.Series()
     for y in year:
-        dum_2 = Demand[(s-1) * n_years + y][:]
-        Electric_Energy_Demand_Series_2 = pd.concat([Electric_Energy_Demand_Series_2, dum_2])
+        # Construct the column name as it appears in the CSV headers
+        if Demand_Profile_Generation: column_name = int(f'{(s-1)*len(year) + y}')
+        else: column_name = f'{(s-1)*len(year) + y}'
+        if column_name in Demand.columns:
+            dum_2 = Demand[column_name].dropna().reset_index(drop=True)
+            Electric_Energy_Demand_Series_2 = pd.concat([s for s in [Electric_Energy_Demand_Series_2, dum_2] if not s.empty])
+        else:
+            print(f"Warning: Column '{column_name}' does not exist in the Demand DataFrame")
     Electric_Energy_Demand_2[s] = Electric_Energy_Demand_Series_2
 
-# Create a RangeIndex
+# Create a RangeIndex for Energy_Demand_2
 index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
 Electric_Energy_Demand_2.index = index_2
+
+"Electric Demand"
+def Initialize_Demand(model, s, y, t):
+    """
+    Initializes electric demand based on the scenario, year, and period.
+
+    Parameters:
+    model (object): The model for which to initialize electric demand.
+    s (int): Scenario number.
+    y (int): Year.
+    t (int): Time period.
+
+    Returns:
+    float: The electric demand.
+    """
+    return float(Electric_Energy_Demand[0][(s, y, t)])
 
 def plot_average_daily_ice_demand(demand_data, output_path):
     n_years = demand_data.shape[1]
@@ -201,65 +240,51 @@ def plot_average_daily_ice_demand(demand_data, output_path):
     plt.grid(True)
     plt.savefig(output_path)
     plt.close() 
-    
-if MultiGood_Ice:
-    Ice = pd.read_excel(demand_file_path, sheet_name="Ice")
+
+if MultiGood_Ice == 1:
+    Ice = pd.read_csv(ice_file_path, delimiter=';', decimal=',', header=0)
     Ice = Ice.drop(Ice.columns[0], axis=1)
     Ice = Ice.iloc[:, :n_years]
-    print("Ice demand data loaded")
-    plot_path = os.path.join(results_directory, 'Ice Demand.png')
+    print("Ice demand data loaded exogenously from excel file")
+    plot_path = os.path.join(plots_directory, 'Ice Demand.png')
     plot_average_daily_ice_demand(Ice, plot_path)
     print("Ice demand plot saved in Results/Plots")
-    Ice_Demand_Series = pd.Series(dtype=float)
 
-    for col in Ice.columns[0:]:  # Skip the first column if it's an index, otherwise adjust as needed
+    # Drop columns where all values are NaN, as they don't contain any useful data
+    Ice = Ice.dropna(how='all', axis=1)
+    Ice_Demand_Series = pd.Series(dtype=float)
+    # Adjust the loop to iterate over the actual column names of the DataFrame
+    for col in Ice.columns[0:]:
         dum = Ice[col].reset_index(drop=True)
         Ice_Demand_Series = pd.concat([Ice_Demand_Series, dum])
-        
-
     frame = [scenario, year, period]
     index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
     Ice_Demand = pd.DataFrame(Ice_Demand_Series)
     Ice_Demand.index = index
-    
-    Ice_Demand_2 = pd.DataFrame()
 
+    Ice_Demand_2 = pd.DataFrame()
+    # Iterate over scenarios and years, assuming scenario and year are defined and match the CSV structure
     for s in scenario:
-        Ice_Demand_Series_2 = pd.Series(dtype=float)
+        Ice_Demand_Series_2 = pd.Series()
         for y in year:
-            dum_2 = Ice[(s-1) * n_years + y][:]
-            Ice_Demand_Series_2 = pd.concat([Ice_Demand_Series_2, dum_2])      
+            # Construct the column name as it appears in the CSV headers
+            column_name = f'{(s-1)*len(year) + y}'
+            if column_name in Ice.columns:
+                dum_2 = Ice[column_name].dropna().reset_index(drop=True)
+                Ice_Demand_Series_2 = pd.concat([s for s in [Ice_Demand_Series_2, dum_2] if not s.empty])
+            else:
+                print(f"Warning: Column '{column_name}' does not exist in the Demand DataFrame")
         Ice_Demand_2[s] = Ice_Demand_Series_2
 
-    # Create a RangeIndex
+    # Create a RangeIndex for Energy_Demand_2
     index_2 = pd.RangeIndex(1, n_years * n_periods + 1)
     Ice_Demand_2.index = index_2
-else:
-    Ice = None
-    Ice_Demand = None
-    Ice_Demand_2 = None
-    
-    
-"Electric Demand"
-def Initialize_Electric_Demand(model, s, y, t):
-    """
-    Initializes electric demand based on the scenario, year, and period.
 
-    Parameters:
-    model (object): The model for which to initialize electric demand.
-    s (int): Scenario number.
-    y (int): Year.
-    t (int): Time period.
-
-    Returns:
-    float: The electric demand.
-    """
-    return float(Electric_Energy_Demand[0][(s, y, t)])
 
 "Ice Demand"
 def Initialize_Ice_Demand(model, s, y, t):
     """
-    Initializes ice demand based on the scenario, year, and period.
+    Initializes Ice demand based on the scenario, year, and period.
 
     Parameters:
     model (object): The model for which to initialize electric demand.
@@ -268,62 +293,60 @@ def Initialize_Ice_Demand(model, s, y, t):
     t (int): Time period.
 
     Returns:
-    float: The ice demand.
+    float: The Ice demand.
     """
     if MultiGood_Ice: return float(Ice_Demand[0][(s, y, t)])
     else: None
-    
+
 #%% This section imports or generates the renewables and temperature time series data 
 
 def plot_renewable_energy_availability(renewable_energy_data, output_path):
-    plt.figure(figsize=(12, 6))
+    hours_per_day = 24
 
-    # Assuming the first column is for solar (yellow) and the second is for wind (blue)
-    colors = ['yellow', 'blue']
-    labels = ['Solar', 'Wind']
+    fig, ax1 = plt.subplots(figsize=(12, 6))
 
-    # Plotting each resource as an area plot
-    for i, col in enumerate(renewable_energy_data.columns):
-        plt.fill_between(renewable_energy_data.index, renewable_energy_data[col], label=labels[i], color=colors[i], alpha=0.5)
+    # Assuming first column is solar (resource 1), second is wind (resource 2)
+    resource_colors = ['yellow', 'lightblue']
+
+    # Plotting first resource
+    col = renewable_energy_data.columns[1]  # Resource 1
+    yearly_data = renewable_energy_data[col].values.reshape(-1, hours_per_day)
+    average_daily_availability = np.mean(yearly_data, axis=0)
+    line1 = ax1.fill_between(range(hours_per_day), average_daily_availability, color=resource_colors[0], alpha=0.5, label=f'Resource 1')
+    ax1.set_xlabel('Hour of Year')
+    ax1.set_ylabel('RES 1 - Electricity production per unit [W]')
+    ax1.grid(True)
+
+    # Creating a second y-axis for the second resource
+    ax2 = ax1.twinx()
+    col = renewable_energy_data.columns[2]  # Resource 2
+    yearly_data = renewable_energy_data[col].values.reshape(-1, hours_per_day)
+    average_daily_availability = np.mean(yearly_data, axis=0)
+    line2 = ax2.fill_between(range(hours_per_day), average_daily_availability, color=resource_colors[1], alpha=0.5, label=f'Resource 2')
+    ax2.set_ylabel('RES 2 - Electricity production per unit [W]')
 
     plt.title('Renewable Energy Resource Availability')
-    plt.xlabel('Hour of Year')
-    plt.ylabel('Resource Availability')
-    plt.legend()
-    plt.grid(True)
+
+    # Combining legends from both axes
+    lines = [line1, line2]
+    labels = [line.get_label() for line in lines]
+    plt.legend(lines, labels, loc='upper right')
+
     plt.savefig(output_path)
     plt.close()
 
 if RE_Supply_Calculation == 0: 
     Renewable_Energy = pd.read_csv(res_file_path, delimiter=';', decimal=',', header=0)
+    print("Renewables Time Series data loaded exogenously from excel file")
+    plot_path = os.path.join(plots_directory, 'Renewables Availability.png')
 else:
-    Renewable_Energy, _ = RE_supply()
+    Renewable_Energy,T_amb = RE_supply()
     Renewable_Energy = Renewable_Energy.set_index(pd.Index(range(1, n_periods+1)), inplace=False)
-print("Renewables Time Series data processed and indexed")
+    print("Renewables Time Series data generated endogenously using NASA POWER")
 
-if MultiGood_Ice:
-    if RE_Supply_Calculation == 0: 
-        Tamb = pd.read_excel(tamb_file_path).dropna(how='all', axis=1)
-    else:
-        _, Tamb = RE_supply()
-        Tamb = Tamb.dropna(how='all', axis=1)
+plot_renewable_energy_availability(Renewable_Energy, plot_path)
+print("Renewables Availability plot saved in Results/Plots")
 
-    Tamb_Series = Tamb.stack()
-    frame = [scenario, year, period]
-    index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
-    Tamb = pd.DataFrame(Tamb_Series, index=index, columns=['Tamb'])
-    Tav = []
-    nmin = []
-    for y in Tamb.index.get_level_values('year').unique():
-        # Calculate the mean temperature for the year
-        year_mean = Tamb.xs(y, level='year')['Tamb'].mean()
-        Tav.append(year_mean)
-        # Find the minimum temperature index for the year
-        min_index = Tamb.xs(y, level='year')['Tamb'].idxmin()
-        nmin.append(min_index[1])
-    tref = 25 # Reference temperature [°C]
-    print("Ambient Temperature Time Series data processed and indexed")
-    
 def Initialize_RES_Energy(model, s, r, t):
     """
     Initializes renewable energy supply based on the specified scenario, resource, and time period.
@@ -340,6 +363,38 @@ def Initialize_RES_Energy(model, s, r, t):
     column = (s - 1) * model.RES_Sources + r
     return float(Renewable_Energy.iloc[t - 1, column]) 
 
+if MultiGood_Ice:
+    if RE_Supply_Calculation == 0: 
+        Tamb = pd.read_csv(tamb_file_path, delimiter=';', decimal=',', header=0)
+        Tamb = Tamb.iloc[:, 1:n_years+1]
+    else:
+        # Initialize Tamb with T_amb for the first year
+        Tamb = T_amb.copy()
+        # Append T_amb for each subsequent year
+        for y in range(2, n_years + 1):
+            # Reset index before concatenation to align the rows
+            Tamb = pd.concat([Tamb, T_amb.reset_index(drop=True)], axis=1)
+        # Rename the columns to reflect the year
+        Tamb.columns = range(1, n_years + 1)
+
+    # Reshape and create MultiIndex DataFrame
+    Tamb = Tamb.melt(var_name='year', value_name='Tamb')
+    Tamb['year'] = Tamb['year'].astype(int)
+    Tamb['scenario'] = [scenario[i % len(scenario)] for i in range(len(Tamb))]
+    Tamb['period'] = period * n_years * len(scenario)
+    Tamb.set_index(['scenario', 'year', 'period'], inplace=True)
+
+    # Calculating Tav and nmin
+    Tav = []
+    nmin = []
+    grouped = Tamb.groupby(level=['scenario', 'year'])
+    for name, group in grouped:
+        year_mean = group['Tamb'].mean()
+        Tav.append(year_mean)
+        min_index = group['Tamb'].idxmin()[2]
+        nmin.append(min_index)
+
+    tref = 25  # Reference temperature [°C]
 
 def Initialize_Tamb(model, s, y, t):
     """
@@ -648,23 +703,21 @@ def Initialize_Generator_Marginal_Cost_milp_1(model,g):
     if Fuel_Specific_Cost_Calculation == 0 and MILP_Formulation == 1 and Generator_Partial_Load == 1: 
         return ((model.Generator_Marginal_Cost_1[g]*model.Generator_Nominal_Capacity_milp[g])-model.Generator_Start_Cost_1[g])/model.Generator_Nominal_Capacity_milp[g] 
     else: None
-
-
+    
 #%% This section initializes parameters related to grid connection
 
-if Grid_Connection:
-    if Grid_Availability_Simulation:
+"Grid Connection"
+if Grid_Connection == 1:
+    if Grid_Availability_Simulation: 
         grid_avail(average_n_outages, average_outage_duration, n_years, year_grid_connection,n_scenarios, n_periods)
-    else:
         availability = pd.read_csv(grid_file_path, delimiter=';', header=0)
+    else: availability = pd.read_csv(grid_file_path, delimiter=';', header=0)
 
     # Create grid_availability Series
-    grid_availability_Series = pd.Series(dtype=float)
+    grid_availability_Series = pd.Series()
     for i in range(1, n_years * n_scenarios + 1):
-        if Grid_Connection and Grid_Availability_Simulation: dum = availability[str(i)]
-        elif Grid_Connection and Grid_Availability_Simulation == 0: dum = availability[str(i)]
-        else: dum = availability[i]
-        grid_availability_Series = pd.concat([grid_availability_Series, dum])
+        dum = availability[str(i)]
+        grid_availability_Series = pd.concat([s for s in [grid_availability_Series, dum] if not s.empty])
 
     grid_availability = pd.DataFrame(grid_availability_Series)
 
@@ -673,14 +726,15 @@ if Grid_Connection:
     index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
     grid_availability.index = index
 
+
     # Create grid_availability_2 DataFrame
-    grid_availability_2 = pd.DataFrame(dtype=float)
+    grid_availability_2 = pd.DataFrame()
     for s in scenario:
-        grid_availability_Series_2 = pd.Series(dtype=float)
+        grid_availability_Series_2 = pd.Series()
         for y in year:
             if Grid_Connection: dum_2 = availability[str((s - 1) * n_years + y)]
             else: dum_2 = availability[(s - 1) * n_years + y]
-            grid_availability_Series_2 = pd.concat([grid_availability_Series_2, dum_2])
+            grid_availability_Series_2 = pd.concat([s for s in [grid_availability_Series_2, dum_2] if not s.empty])
         grid_availability_2[s] = grid_availability_Series_2
 
     # Create a RangeIndex
@@ -701,7 +755,7 @@ def Initialize_Grid_Availability(model, s, y, t):
     float: The grid availability for the specified scenario, year, and time period.
     """
     if Grid_Connection: return float(grid_availability[0][(s,y,t)])
-    else: None
+    else: 0
 
 def Initialize_National_Grid_Inv_Cost(model):
     """
@@ -715,7 +769,7 @@ def Initialize_National_Grid_Inv_Cost(model):
     float: The total investment cost for connecting to the national grid.
     """
     if Grid_Connection: return model.Grid_Distance*model.Grid_Connection_Cost* model.Grid_Connection/((1+model.Discount_Rate)**(model.Year_Grid_Connection-1))
-    else: None
+    else: 0
     
 def Initialize_National_Grid_OM_Cost(model):
     """
@@ -745,7 +799,7 @@ def Initialize_National_Grid_OM_Cost(model):
     Grid_Fixed_Cost = Grid_Fixed_Cost.groupby(level=[0], axis=1, sort=False).sum()
 
     if Grid_Connection: return Grid_Fixed_Cost.iloc[0]['Total']
-    else: None
+    else: 0
 
 ################################################################## ICE PRODUCTION ##########################################################################
 
@@ -825,6 +879,7 @@ def Initialize_Ice_Tank_Minimum_Capacity(model,ut):
 
 #%% This section initializes parameters related to refrigeration cycle to meet the ice demand
 
+year = [i for i in range(1,n_years+1)]
 if MultiGood_Ice:
     cop_list = []
     for s in scenario:

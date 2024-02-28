@@ -153,15 +153,16 @@ def solarPV_parameters(Data_import):
 def wind_parameters(Data_import):
     for value in Data_import:
         if "param: turbine_type" in value:
-            type_turb = value[value.index('=')+1:value.index(';')].replace(' ','').replace("'","")
+            type_turb = value[value.index('=')+1:value.index(';')].strip().replace("'","")
         if "param: turbine_model" in value:
-            turb_model = value[value.index('=')+1:value.index(';')].replace(' ','').replace("'","")  
+            turb_model = value[value.index('=')+1:value.index(';')].strip().replace("'","")
         if "param: drivetrain_efficiency" in value:
-            drivetrain_efficiency = float(value[value.index('=')+1:value.index(';')].replace(' ','').replace("'",""))
-    if type_turb == 'HA':
+            drivetrain_efficiency = float(value[value.index('=')+1:value.index(';')].strip().replace("'",""))
+    
+    if type_turb == 'Horizontal Axis':
         skipf = 71-35
         skiprow = 0
-    elif type_turb == 'VA':
+    elif type_turb == 'Vertical Axis':
         skipf = 0
         skiprow = 36
     current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -170,9 +171,9 @@ def wind_parameters(Data_import):
     data1 = pd.read_csv(data_file_path, skiprows = skiprow,  skipfooter = skipf, delimiter=';', decimal=',') 
     df = pd.DataFrame(data1, columns= [turb_model])
     power_curve = (df[turb_model][4:34]).values.tolist()
-    rot_diam = df[turb_model][1]
-    rot_height = df[turb_model][2]
-    if type_turb == 'HA':
+    rot_diam = float(df[turb_model][1])
+    rot_height = float(df[turb_model][2])
+    if type_turb == 'Horizontal Axis':
         surface_area = math.pi * rot_diam**2 /4
     else:
         surface_area = rot_height*math.pi*rot_diam
@@ -761,17 +762,31 @@ def wind_lst(U_rotor, wind_direction, ro_air):
 ### Extrapolate power curve of the turbine from Power_curves excel file and calculate wind power hourly production     #QUI MANCA IL CALCOLO PER TURBINE AD ASSE ORIZZONTALE
 
 def P_turb(power_curve, WS_rotor_lst, ro_air_lst, surface_area, drivetrain_efficiency):
-    
+    # Ensure power_curve is a numeric array
+    # If power_curve is a list of strings, convert it to a list of floats.
+    fp = np.array([float(pc) for pc in power_curve])
+
+    # Convert range to numpy array for xp
+    xp = np.array(range(0, 30))
+
     En_wind = []
     En_WT = []
     Cp = []
     for ii in range(len(WS_rotor_lst)):
-        En_wind.append(0.5 * ro_air_lst[ii] * surface_area * WS_rotor_lst[ii]**3)                         #compute hourly ideal wind energy 
-        En_WT.append(np.interp(WS_rotor_lst[ii], range(0,30), power_curve)*1000)                          #compute hourly energy production
-        Cp.append(En_WT[ii]/(En_wind[ii]))                                                               #compute hourly turbine power coefficient  
-    return En_WT, Cp  
+        # Ensure WS_rotor_lst[ii] is numeric and convert it if necessary
+        WS_rotor_value = float(WS_rotor_lst[ii])
 
+        # Compute hourly ideal wind energy
+        En_wind.append(0.5 * ro_air_lst[ii] * surface_area * WS_rotor_value**3)
 
+        # Compute hourly energy production using interpolation
+        interpolated_value = np.interp(WS_rotor_value, xp, fp) * 1000
+        En_WT.append(interpolated_value)
+
+        # Compute hourly turbine power coefficient
+        Cp.append(En_WT[ii]/(En_wind[ii])) if En_wind[ii] != 0 else Cp.append(0)
+
+    return En_WT, Cp 
 
 #%% Main 
 
@@ -826,6 +841,10 @@ def RE_supply():
 ### Calculate electricity production from the PV system
     
     T_amb = param_typical_hourly[3]                               #[°C]
+    # Flatten the list of lists (of lists) into a single list
+    flat_list = [temp for sublist in T_amb for day in sublist for temp in day]
+    # Convert the flat list into a DataFrame
+    T_ambient_df = pd.DataFrame(flat_list, columns=['T_ambient'])
     T_cell = [[] for ii in range(len(T_amb))]    
     energy_PV = [[] for ii in range(len(T_amb))]
     
@@ -876,7 +895,7 @@ def RE_supply():
     elapsed = end - start
     print('\n\nRES time series calculation completed (overall time: ',round(elapsed,0),'s,', round(elapsed/60,1),' m)\n')
 
-    return dataf, T_amb
+    return dataf, T_ambient_df
 
 if __name__ == "__main__":
     RE_supply()

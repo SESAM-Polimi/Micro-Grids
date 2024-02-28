@@ -1,3 +1,23 @@
+"""
+MicroGridsPy - Multi-year capacity-expansion (MYCE)
+
+Linear Programming framework for microgrids least-cost sizing,
+able to account for time-variable load demand evolution and capacity expansion.
+
+Authors: 
+    Alessandro Onori   - Department of Energy, Politecnico di Milano
+    Giulia Guidicini   - Department of Energy, Politecnico di Milano 
+    Lorenzo Rinaldi    - Department of Energy, Politecnico di Milano
+    Nicolò Stevanato   - Department of Energy, Politecnico di Milano / Fondazione Eni Enrico Mattei
+    Francesco Lombardi - Department of Energy, Politecnico di Milano
+    Emanuela Colombo   - Department of Energy, Politecnico di Milano
+    
+Based on the original model by:
+    Sergio Balderrama  - Department of Mechanical and Aerospace Engineering, University of Liège / San Simon University, Centro Universitario de Investigacion en Energia
+    Sylvain Quoilin    - Department of Mechanical Engineering Technology, KU Leuven
+"""
+
+
 import re
 import os
 import tkinter as tk
@@ -31,7 +51,7 @@ class Application(ThemedTk):
         style.configure('TFrame', background=background_color)
         self.title("MicroGridsPy User Interface")  # Set the application title
         self.geometry("900x700")      # Set the default size of the application
-        #self.iconbitmap('C:/Users/onori/Desktop/2.0 + Interface/MicroGridsPy-SESAM/MGPy Logo.png')
+        self.iconbitmap('Images/python_logo.ico')
         # Set the background color for the main window
         self.configure(background=background_color)
 
@@ -82,7 +102,7 @@ class Application(ThemedTk):
         return self.frames["AdvancedPage"].Grid_Availability_Simulation_var.get()
     
     def get_archetypes_value(self):
-        return self.frames["ArchetypesPage"].Demand_Profile_Generation_var.get()
+        return self.frames["ArchetypesPage"].demand_option_var.get()
     
     def get_res_calculation_value(self):
         return self.frames["RECalculationPage"].RE_Supply_Calculation_var.get()

@@ -196,6 +196,10 @@ class GeneratorPage(tk.Frame):
             entry = ttk.Entry(self.inner_frame, textvariable=temp_var, validate='key', validatecommand=vcmd)
             entry.grid(row=row, column=1 + i, sticky='w')
             entry.config(state=initial_entry_state)
+            
+            # Add tooltip for the entry
+            tooltip_text = self.gen_params_tooltips.get(param, "Info not available")
+            create_tooltip(entry, tooltip_text)
 
             # Append the new entry to gen_entries
             self.gen_entries.append((temp_var, label, entry))
@@ -562,8 +566,10 @@ class GeneratorPage(tk.Frame):
             # Append to gen_entries
             self.gen_entries.append((var, label, entry))
             
-        separator = ttk.Separator(self.inner_frame, orient='horizontal')
-        separator.grid(row=21, column=0, columnspan=3, pady=10, sticky='ew')
+        self.italic_font = tkFont.Font(family="Helvetica", size=10, slant="italic")
+        self.fuel_intro_label = ttk.Label(self.inner_frame, text="Fuel parameters:", font=self.italic_font, wraplength=850, justify="left")
+        self.fuel_intro_label.grid(row=22, column=0, columnspan=3, pady=10, sticky='w')
+
             
         self.Fuel_Specific_Cost_Import_var = tk.IntVar(value=0)
         self.Fuel_Specific_Cost_Import_label = ttk.Label(self.inner_frame, text='Fuel_Specific_Cost_Import', state='disabled')
