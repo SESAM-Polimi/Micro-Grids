@@ -887,7 +887,6 @@ def Initialize_Ice_Tank_Minimum_Capacity(model,ut):
 
 #%% This section initializes parameters related to refrigeration cycle to meet the ice demand
 
-print(Tamb)
 if MultiGood_Ice:
     cop_list = []
     for s in scenario:
