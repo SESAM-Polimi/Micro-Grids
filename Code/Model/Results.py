@@ -232,7 +232,7 @@ def TimeSeries(instance):
                     if instance.MultiGood_Ice.value == 1:
                         TimeSeries[s][y] = pd.concat([TimeSeries[s][y], COMP,Tank_IN,Tank_OUT,ICE_Prod], axis=1) 
                         scenario_header  += ['Scenario ' + str(s),'Scenario ' + str(s),'Scenario ' + str(s),'Scenario ' + str(s)]
-                        flow_header      += ['Compressor Consumption','Ice Tank Discharge','Ice Tank Charge', 'Ice Production'] 
+                        flow_header      += ['Compressor Consumption','Ice Tank Charge','Ice Tank Discharge', 'Ice Production'] 
                         component_header += ['','','','']
                         unit_header      += ['Wh','kg','kg','kg']
                 

@@ -344,7 +344,7 @@ else:
     Renewable_Energy = Renewable_Energy.set_index(pd.Index(range(1, n_periods+1)), inplace=False)
     print("Renewables Time Series data generated endogenously using NASA POWER")
 
-plot_renewable_energy_availability(Renewable_Energy, plot_path)
+plot_renewable_energy_availability(Renewable_Energy, plots_directory)
 print("Renewables Availability plot saved in Results/Plots")
 
 def Initialize_RES_Energy(model, s, r, t):
