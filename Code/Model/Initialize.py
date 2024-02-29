@@ -166,7 +166,7 @@ if Demand_Profile_Generation:
 else:
     Demand = pd.read_csv(demand_file_path, delimiter=';', decimal=',', header=0)
     Demand = Demand.drop(Demand.columns[0], axis=1)
-    Demand = Demand.iloc[:, :n_years]
+    if n_scenarios == 1: Demand = Demand.iloc[:, :n_years]
     print("Electric demand data loaded exogenously from excel file")
     plot_path = os.path.join(plots_directory, 'Electric Demand.png')
     plot_average_daily_demand(Demand, plot_path)
@@ -244,7 +244,7 @@ def plot_average_daily_ice_demand(demand_data, output_path):
 if MultiGood_Ice == 1:
     Ice = pd.read_csv(ice_file_path, delimiter=';', decimal=',', header=0)
     Ice = Ice.drop(Ice.columns[0], axis=1)
-    Ice = Ice.iloc[:, :n_years]
+    if n_scenarios == 1: Ice = Ice.iloc[:, :n_years]
     print("Ice demand data loaded exogenously from excel file")
     plot_path = os.path.join(plots_directory, 'Ice Demand.png')
     plot_average_daily_ice_demand(Ice, plot_path)
@@ -366,7 +366,10 @@ def Initialize_RES_Energy(model, s, r, t):
 if MultiGood_Ice:
     if RE_Supply_Calculation == 0: 
         Tamb = pd.read_csv(tamb_file_path, delimiter=';', decimal=',', header=0)
-        Tamb = Tamb.iloc[:, 1:n_years+1]
+        if n_scenarios == 1: Tamb = Tamb.iloc[:, 1:n_years+1]
+        else: 
+            Tamb.drop(Tamb.columns[0], axis=1, inplace=True)
+            
     else:
         # Initialize Tamb with T_amb for the first year
         Tamb = T_amb.copy()
@@ -376,14 +379,19 @@ if MultiGood_Ice:
             Tamb = pd.concat([Tamb, T_amb.reset_index(drop=True)], axis=1)
         # Rename the columns to reflect the year
         Tamb.columns = range(1, n_years + 1)
-
-    # Reshape and create MultiIndex DataFrame
-    Tamb = Tamb.melt(var_name='year', value_name='Tamb')
-    Tamb['year'] = Tamb['year'].astype(int)
-    Tamb['scenario'] = [scenario[i % len(scenario)] for i in range(len(Tamb))]
-    Tamb['period'] = period * n_years * len(scenario)
-    Tamb.set_index(['scenario', 'year', 'period'], inplace=True)
-
+        
+    # Drop columns where all values are NaN, as they don't contain any useful data
+    Tamb = Tamb.dropna(how='all', axis=1)
+    Tamb_Series = pd.Series(dtype=float)
+    # Adjust the loop to iterate over the actual column names of the DataFrame
+    for col in Tamb.columns[0:]:
+        dum = Tamb[col].reset_index(drop=True)
+        Tamb_Series = pd.concat([Tamb_Series, dum])
+    frame = [scenario, year, period]
+    index = pd.MultiIndex.from_product(frame, names=['scenario', 'year', 'period'])
+    Tamb = pd.DataFrame(Tamb_Series, columns=['Tamb'])
+    Tamb.index = index
+    
     # Calculating Tav and nmin
     Tav = []
     nmin = []
@@ -879,7 +887,7 @@ def Initialize_Ice_Tank_Minimum_Capacity(model,ut):
 
 #%% This section initializes parameters related to refrigeration cycle to meet the ice demand
 
-year = [i for i in range(1,n_years+1)]
+print(Tamb)
 if MultiGood_Ice:
     cop_list = []
     for s in scenario:
