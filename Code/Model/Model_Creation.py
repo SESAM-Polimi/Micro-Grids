@@ -114,7 +114,8 @@ def Model_Creation(model):
     model.Fuel_Specific_Cost_Import         = Param(within=Binary)                                    # 1 to import variable fuel specific cost from csv file (only if Fuel_Specific_Cost_Calculation activated)
     model.Fuel_Specific_Cost_Calculation    = Param(within=Binary)                                    # 1 to allows variable fuel specific cost across the years, 0 otherwise
     model.MultiGood_Ice                     = Param(within=Binary)                                    # 1 to allows Multi-Good optimization with a demand of ice, 0 otherwise
-    
+    model.Ice_Storage                       = Param(within=Binary)                                    # 1 to allows Ice Storage, 0 otherwise
+
     model.Solver                            = Param(within=NonNegativeIntegers)                       # 0 for Gurobi, 1 for GLPK and 2 for HiGHS (currently NOT available)
     
     "Sets"

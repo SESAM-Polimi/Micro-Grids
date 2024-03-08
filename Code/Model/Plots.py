@@ -846,7 +846,6 @@ def SizePlot(instance, Results, PlotResolution, PlotFormat):
             ax2.set_xticks(x_positions)
             ax2.set_xticklabels(x_ticks, fontsize=fontticks)
             ax2.margins(x=0.009)
-            ax2.set_title('Mini-Grid Sizing [kWh]', fontsize=fontaxis)
 
     else:
         # Multiple steps logic
@@ -899,7 +898,6 @@ def SizePlot(instance, Results, PlotResolution, PlotFormat):
         ax2.set_xticks(x_positions)
         ax2.set_xticklabels(steps, fontsize=fontticks)
         ax2.margins(x=0.009)
-        ax2.set_title('Mini-Grid Sizing [kWh]', fontsize=fontaxis)
 
     # Set legend and save
     fig.legend(bbox_to_anchor=(1.19, 0.98), ncol=1, fontsize=fontlegend, frameon=True)

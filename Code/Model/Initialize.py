@@ -379,6 +379,9 @@ if MultiGood_Ice:
             Tamb = pd.concat([Tamb, T_amb.reset_index(drop=True)], axis=1)
         # Rename the columns to reflect the year
         Tamb.columns = range(1, n_years + 1)
+        # Export the modified or generated Tamb DataFrame to the same CSV file
+        Tamb.to_csv(tamb_file_path, sep=';', decimal=',', index=False)
+        print('Tamb data exported into csv file')
         
     # Drop columns where all values are NaN, as they don't contain any useful data
     Tamb = Tamb.dropna(how='all', axis=1)
