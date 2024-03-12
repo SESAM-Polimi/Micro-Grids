@@ -3,7 +3,7 @@ from pyomo.environ import AbstractModel
 from Model_Creation import Model_Creation
 from Model_Resolution import Model_Resolution
 from Results import ResultsSummary, TimeSeries, PrintResults
-from Plots import DispatchPlot, DispatchPlot_Ice, SizePlot , CashFlowPlot
+from Plots import DispatchPlot, DispatchPlot_Ice, SizePlot , CashFlowPlot, PlotCumulativeMonthlyEnergyDemand
 
 
 start = time.time()         # Start time counter
@@ -54,8 +54,14 @@ DispatchPlot1(instance,TimeSeries,PlotScenario1,PlotDate1,PlotTime1,PlotResoluti
 DispatchPlot2(instance,TimeSeries,PlotScenario2,PlotDate2,PlotTime2,PlotResolution2,PlotFormat2)
 DispatchPlot3(instance,TimeSeries,PlotScenario3,PlotDate3,PlotTime3,PlotResolution3,PlotFormat3)
 '''
+# Ice Production
 DispatchPlot_Ice(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat)
+PlotCumulativeMonthlyEnergyDemand(instance, Time_Series, PlotScenario, PlotDate, PlotResolution, PlotFormat)
+
+# Costs
 CashFlowPlot(instance,Results,PlotResolution,PlotFormat)
+
+# Sizing
 SizePlot(instance,Results,PlotResolution,PlotFormat)
 
 PrintResults(instance, Results)  

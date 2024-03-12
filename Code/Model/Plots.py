@@ -20,8 +20,65 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
+import matplotlib.dates as mdates
 import re
 import os
+
+def PlotCumulativeMonthlyEnergyDemand(instance, Time_Series, PlotScenario, PlotDate, PlotResolution, PlotFormat):
+    print('Plotting cumulative monthly energy demand...')
+
+    # Fonts and figure size setup
+    fontticks = 18
+    fontaxis = 20
+    fontlegend = 20
+    plt.rcParams['font.family'] = 'Times New Roman'
+    plt.rcParams['font.size'] = 12
+
+    # Data preparation
+    idx = pd.IndexSlice
+    PlotYear  = pd.to_datetime(PlotDate).year - pd.to_datetime(instance.StartDate()).year +1
+    Series = Time_Series[PlotScenario][PlotYear].copy()
+    
+    # Ensure the Series index is a DatetimeIndex for resampling
+    if not isinstance(Series.index, pd.DatetimeIndex):
+        Series.index = pd.to_datetime(Series.index.get_level_values(0))
+
+    # Calculate monthly sums for electric demand and compressor consumption
+    monthly_electric_demand = Series.loc[:, idx[:, 'Electric Demand', :, :]].resample('M').sum() / 1e3  # Convert to kWh
+    monthly_compressor_demand = Series.loc[:, idx[:, 'Compressor Consumption', :, :]].resample('M').sum() / 1e3  # Convert to kWh
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    # Calculate bar positions
+    months = monthly_electric_demand.index
+    width = 0.35  # the width of the bars
+    positions_electric = range(len(months))
+    positions_compressor = [p + width for p in positions_electric]
+
+    # Plot bars
+    bars1 = ax.bar(positions_electric, monthly_electric_demand.values.flatten(), width, label='Electric Demand', color='skyblue')
+    bars2 = ax.bar(positions_compressor, monthly_compressor_demand.values.flatten(), width, label='Compressor Consumption', color='orange')
+
+    # Formatting the x-axis to show months properly
+    ax.set_xticks([p + width / 2 for p in positions_electric])
+    ax.set_xticklabels([m.strftime('%b') for m in months], rotation=45)
+    
+    ax.set_xlabel('Month',fontname='Times New Roman', fontsize=fontaxis)
+    ax.set_ylabel('Energy [kWh]', fontname='Times New Roman', fontsize=fontaxis)
+    ax.set_title(f'Cumulative Monthly Energy Deman (Year {PlotYear})', fontsize=fontaxis + 2, fontname='Times New Roman', pad=20)
+    ax.tick_params(axis='x', which='major', labelsize=fontticks)
+    ax.tick_params(axis='y', which='major', labelsize=fontticks)
+    ax.legend()
+
+    plt.tight_layout()
+
+    # Save the plot
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    results_directory = os.path.join(current_directory, '..', 'Results/Plots')
+    plot_filename = f'CumulativeMonthlyEnergyDemand_{PlotYear}.{PlotFormat}'
+    plot_path = os.path.join(results_directory, plot_filename)
+    fig.savefig(plot_path, dpi=PlotResolution, bbox_inches='tight')
 
 #%%
 def DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolution,PlotFormat):
@@ -141,8 +198,11 @@ def DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolut
     if instance.Grid_Connection.value == 1:
         y_Stacked_pos += [y_Grid_out]
         y_Stacked_pos += [y_Grid_in]
-    
+        
     y_Demand   = Series.loc[:,idx[:,'Electric Demand',:,:]].values.flatten()/1e3
+    if instance.MultiGood_Ice.value == 1:
+        y_Demand_Compressor   = Series.loc[:,idx[:,'Compressor Consumption',:,:]].values.flatten()/1e3
+
     x_Plot = np.arange(len(y_Demand))
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
         if MILP_Formulation:
@@ -202,7 +262,12 @@ def DispatchPlot(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotResolut
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:            
         ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
     ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
+    if instance.MultiGood_Ice.value == 1:
+        ax1.plot(x_Plot, y_Demand_Compressor, linewidth=2, color='yellow', label='Compressor Demand', zorder=2)
+        ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
     ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
+
+        
  
     ax1.set_xlabel('Time [Hours]', fontsize=fontaxis)
     ax1.set_ylabel('Power [kW]', fontsize=fontaxis)
@@ -323,27 +388,25 @@ def DispatchPlot_Ice(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotRes
     Series.index = range(1,(len(Series)+1))
     Series       = Series[Start_Plot:int(End_Plot)] # Extract the data between the start and end position from the Time_Series
     Series.index = pd.date_range(start=PlotDate, periods=PlotTime*pDay, freq=('1h')) 
-   
-    y_IceTank_out      = Series.loc[:,idx[:,'Ice Tank Discharge',:,:]].values.flatten()
-    y_IceTank_in       = -1*Series.loc[:,idx[:,'Ice Tank Charge',:,:]].values.flatten()
     y_IceProduction    = Series.loc[:,idx[:,'Ice Production',:,:]].values.flatten()
-    IceTankNominalCapacity = instance.Ice_Tank_Nominal_Capacity.get_values()
-    y_IceTank_SOC = Series.loc[:, idx[:, 'Ice Tank SOC', :, :]].values.flatten() * 10
     
+    if instance.Ice_Storage.value == 1:
+        IceTankNominalCapacity = instance.Ice_Tank_Nominal_Capacity.get_values()
+        y_IceTank_SOC = Series.loc[:, idx[:, 'Ice Tank SOC', :, :]].values.flatten() * 10
+        y_IceTank_out = Series.loc[:, idx[:, 'Ice Tank Discharge', :, :]].values.flatten()
+        y_IceTank_in = -1 * Series.loc[:, idx[:, 'Ice Tank Charge', :, :]].values.flatten()
+        deltaIceTank = y_IceTank_out + y_IceTank_in
 
-    deltaIceTank_pos = y_IceTank_out + y_IceTank_in
-    deltaIceTank_neg = y_IceTank_out + y_IceTank_in
-    
-    for i in range(deltaIceTank_pos.shape[0]):
-        if deltaIceTank_pos[i] < 0:   
-            deltaIceTank_pos[i] *= 0
-        if deltaIceTank_neg[i] > 0:   
-            deltaIceTank_neg[i] *= 0
-    
-    y_Stacked_pos = []
-    y_Stacked_pos += [deltaIceTank_pos]  
-    y_Stacked_neg = [deltaIceTank_neg]
-    y_Stacked_pos += [y_IceProduction]  
+        # Conditionally adjust deltaIceTank for positive and negative contributions
+        deltaIceTank_pos = np.maximum(deltaIceTank, 0)
+        deltaIceTank_neg = np.minimum(deltaIceTank, 0)
+
+        y_Stacked_pos = np.vstack([deltaIceTank_pos, y_IceProduction])
+        y_Stacked_neg = np.vstack([deltaIceTank_neg])  # Ensure it is 2D
+    else:
+        # When no Ice Storage, only use y_IceProduction for positive stack
+        y_Stacked_pos = np.vstack([y_IceProduction])
+        y_Stacked_neg = np.array([])  # Empty for compatibility
     
     y_Demand   = Series.loc[:,idx[:,'Ice Demand',:,:]].values.flatten()
     x_Plot = np.arange(len(y_Demand))
@@ -353,25 +416,37 @@ def DispatchPlot_Ice(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotRes
     IceProduction_Color  = instance.Ice_Production_Color()
     
     Colors_pos = []
-    Colors_pos += ['#'+IceTank_Color]  
+    if instance.Ice_Storage.value == 1:
+        Colors_pos += ['#'+IceTank_Color]  
     Colors_pos += ['#'+IceProduction_Color]  
 
     Colors_neg = []
-    Colors_neg = ['#'+IceTank_Color]
+    if instance.Ice_Storage.value == 1:
+        Colors_neg = ['#'+IceTank_Color]
 
     Labels_pos = []
-    Labels_pos += ['Ice Tank']  
+    if instance.Ice_Storage.value == 1:
+        Labels_pos += ['Ice Tank']  
     Labels_pos += ['Ice Production']  
 
     Labels_neg = []
-    Labels_neg = ['_nolegend_'] 
+    if instance.Ice_Storage.value == 1:
+        Labels_neg = ['_nolegend_'] 
 
     fig,ax1 = plt.subplots(nrows=1,ncols=1,figsize = (12,8))
 
-    ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)           
-    ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
-    ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=2)
-    ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=2)
+    # Conditional plotting for stacked positive values
+    if np.any(y_Stacked_pos):
+        ax1.stackplot(x_Plot, y_Stacked_pos, labels=Labels_pos, colors=Colors_pos, zorder=2)
+
+    # Conditional plotting for stacked negative values
+    if np.any(y_Stacked_neg):
+        ax1.stackplot(x_Plot, y_Stacked_neg, labels=Labels_neg, colors=Colors_neg, zorder=2)
+
+    # Plotting demand and baseline
+    ax1.plot(x_Plot, y_Demand, linewidth=4, color='black', label='Demand', zorder=3)
+    ax1.plot(x_Plot, np.zeros((len(x_Plot))), color='black', label='_nolegend_', zorder=3)
+
  
     ax1.set_xlabel('Time [Hours]', fontsize=fontaxis)
     ax1.set_ylabel('Ice Mass [kg]', fontsize=fontaxis)
@@ -395,7 +470,8 @@ def DispatchPlot_Ice(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotRes
     ax1.grid(True, zorder=2) ####
        
     "secondary y axis"
-    if IceTankNominalCapacity[PlotStep] >= 1:
+    if instance.Ice_Storage.value == 1:
+        if IceTankNominalCapacity[PlotStep] >= 1:
             ax2=ax1.twinx()
             ax2.plot(x_Plot, y_IceTank_SOC, '--', color='black', label='Ice in the Tank', zorder=2)
             ax2.set_ylabel('Ice Tank state of charge [%]', fontsize=fontaxis)

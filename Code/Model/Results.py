@@ -243,7 +243,7 @@ def TimeSeries(instance):
                     component_header += ['']
                     unit_header      += ['Wh']
 
-                    if instance.MultiGood_Ice.value == 1:
+                    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
                         Ice_mass         = pd.DataFrame ([Tank_lvl[(s,y,t)] for t in  range(1,P+1)])
                         TimeSeries[s][y] = pd.concat([TimeSeries[s][y], Ice_mass], axis=1)
                         scenario_header  += ['Scenario ' + str(s)]
@@ -457,7 +457,7 @@ def EnergySystemCost(instance, Optimization_Goal):
                if ST != 1:
                    Compressor_Investment_Cost = pd.concat([Compressor_Investment_Cost, tank_inv_tot],axis=1) 
          "Ice_Tank"
-         if instance.MultiGood_Ice.value == 1:
+         if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
              Ice_Tank_Nominal_Capacity = instance.Ice_Tank_Nominal_Capacity.get_values()
              Ice_Tank_Inv_Specific_Cost = instance.Ice_Tank_Specific_Investment_Cost.value
              Ice_Tank_Investment_Cost = pd.DataFrame()
@@ -546,7 +546,7 @@ def EnergySystemCost(instance, Optimization_Goal):
             BESS_Investment_Cost = pd.concat([BESS_Investment_Cost, bess_inv_tot],axis=1)
 
      "Ice_Tank"
-     if instance.MultiGood_Ice.value == 1:
+     if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
         Ice_Tank_Nominal_Capacity = instance.Ice_Tank_Nominal_Capacity.get_values()
         Ice_Tank_Inv_Specific_Cost = instance.Ice_Tank_Specific_Investment_Cost.value
         Ice_Tank_Investment_Cost = pd.DataFrame()
@@ -695,7 +695,7 @@ def EnergySystemCost(instance, Optimization_Goal):
         BESS_Fixed_Cost = BESS_Fixed_Cost.groupby(level=[0], axis=1, sort=False).sum()
 
     "Ice Tank"
-    if instance.MultiGood_Ice.value == 1:
+    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
         Ice_Tank_OM_Specific_Cost = instance.Ice_Tank_Specific_OM_Cost.value    
         Ice_Tank_Fixed_Cost = pd.DataFrame()
         t_fc = 0
@@ -856,7 +856,7 @@ def EnergySystemCost(instance, Optimization_Goal):
         BESS_emission.columns = ['Total']
         BESS_emission.index.names = ['Cost item', 'Component', 'Scenario', 'Unit']
 
-    if instance.MultiGood_Ice.value == 1:
+    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
         Ice_Tank_emission = pd.DataFrame(['Ice_Tank CO2 emission', 'Ice_Tank', '-', 'ton', instance.Ice_Tank_emission.value/1e3]).T.set_index([0,1,2,3])
         Ice_Tank_emission.columns = ['Total']
         Ice_Tank_emission.index.names = ['Cost item', 'Component', 'Scenario', 'Unit']
@@ -940,13 +940,13 @@ def EnergySystemCost(instance, Optimization_Goal):
         round(LCOE_scenarios.astype(float), 4),
         round(RES_Investment_Cost.astype(float), 3),
         round(BESS_Investment_Cost.astype(float), 3) if instance.Model_Components.value in [0, 1] else None,
-        round(Ice_Tank_Investment_Cost.astype(float),3) if instance.MultiGood_Ice.value == 1 else None, 
+        round(Ice_Tank_Investment_Cost.astype(float),3) if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1 else None, 
         round(Compressor_Investment_Cost.astype(float),3) if instance.MultiGood_Ice.value == 1 else None,
         round(Generator_Investment_Cost.astype(float), 3) if instance.Model_Components.value in [0, 2] else None,
         round(Grid_Investment_Cost.astype(float), 3) if instance.Grid_Connection.value == 1 else None,
         round(RES_Fixed_Cost.astype(float), 3),
         round(BESS_Fixed_Cost.astype(float), 3) if instance.Model_Components.value in [0, 1] else None,
-        round(Ice_Tank_Fixed_Cost.astype(float),3) if instance.MultiGood_Ice.value == 1 else None,
+        round(Ice_Tank_Fixed_Cost.astype(float),3) if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1 else None,
         round(Compressor_Fixed_Cost.astype(float),3) if instance.MultiGood_Ice.value == 1 else None,
         round(Generator_Fixed_Cost.astype(float), 3) if instance.Model_Components.value in [0, 2] else None,
         round(Grid_Fixed_Cost.astype(float), 3) if instance.Grid_Connection.value == 1 else None,
@@ -1093,7 +1093,7 @@ def EnergySystemSize(instance):
          if ST != 1:
             Generator_Size = pd.concat([Generator_Size, gen_size_tot],axis=1)
      "Ice Tank"
-     if instance.MultiGood_Ice.value == 1:
+     if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
          Ice_Tank_Nominal_Capacity = instance.Ice_Tank_Nominal_Capacity.get_values()
          Ice_Tank_Size = pd.DataFrame()
          ice_tank_size = pd.DataFrame(['Ice Tank', 'kg', Ice_Tank_Nominal_Capacity[1]]).T.set_index([0,1])
@@ -1222,7 +1222,7 @@ def EnergySystemSize(instance):
             Generator_Size = pd.concat([Generator_Size, gen_size_tot],axis=1)
 
      "Ice Tank"
-     if instance.MultiGood_Ice.value == 1:
+     if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
          Ice_Tank_Nominal_Capacity = instance.Ice_Tank_Nominal_Capacity.get_values()
          Ice_Tank_Size = pd.DataFrame()
          ice_tank_size = pd.DataFrame(['Ice Tank', 'kg', Ice_Tank_Nominal_Capacity[1]]).T.set_index([0,1])
@@ -1250,26 +1250,26 @@ def EnergySystemSize(instance):
      if instance.MultiGood_Ice.value == 1:
          Compressor_Nominal_Capacity = instance.Compressor_Nominal_Capacity.get_values()
          Compressor_Size = pd.DataFrame()
-         ice_tank_size = pd.DataFrame(['Compressor', 'kW', Compressor_Nominal_Capacity[1]/1e3]).T.set_index([0,1])
+         compressor_size = pd.DataFrame(['Compressor', 'kW', Compressor_Nominal_Capacity[1]/1e3]).T.set_index([0,1])
          if ST == 1:
-            ice_tank_size.columns = ['Total']
+            compressor_size.columns = ['Total']
          else:
-            ice_tank_size.columns = ['Step 1']
-         ice_tank_size.index.names = ['Component', 'Unit']
-         Compressor_Size = pd.concat([Compressor_Size, ice_tank_size], axis=1).fillna(0)
+            compressor_size.columns = ['Step 1']
+         compressor_size.index.names = ['Component', 'Unit']
+         Compressor_Size = pd.concat([Compressor_Size, compressor_size], axis=1).fillna(0)
          for (y,st) in tup_list:
-            ice_tank_size = pd.DataFrame(['Compressor', 'kW', (Compressor_Nominal_Capacity[st]-Compressor_Nominal_Capacity[st-1])/1e3]).T.set_index([0,1])
+            compressor_size = pd.DataFrame(['Compressor', 'kW', (Compressor_Nominal_Capacity[st]-Compressor_Nominal_Capacity[st-1])/1e3]).T.set_index([0,1])
             if ST == 1:
-                ice_tank_size.columns = ['Total']
+                compressor_size.columns = ['Total']
             else:
-                ice_tank_size.columns = ['Step '+str(st)]
-            ice_tank_size.index.names = ['Component', 'Unit']
-            Compressor_Size = pd.concat([Compressor_Size, ice_tank_size], axis=1).fillna(0)     
+                compressor_size.columns = ['Step '+str(st)]
+            compressor_size.index.names = ['Component', 'Unit']
+            Compressor_Size = pd.concat([Compressor_Size, compressor_size], axis=1).fillna(0)     
          Compressor_Size = Compressor_Size.groupby(level=[0], axis=1, sort=False).sum()
-         ice_tank_size_tot = Compressor_Size.sum(1).to_frame()
-         ice_tank_size_tot.columns = ['Total']
+         compressor_size_tot = Compressor_Size.sum(1).to_frame()
+         compressor_size_tot.columns = ['Total']
          if ST != 1:
-            Compressor_Size = pd.concat([Compressor_Size, ice_tank_size_tot],axis=1)
+            Compressor_Size = pd.concat([Compressor_Size, compressor_size_tot],axis=1)
 
                
     #%% Concatenating
@@ -1277,7 +1277,7 @@ def EnergySystemSize(instance):
         round(RES_Size.astype(float), 2),
         round(BESS_Size.astype(float), 2) if instance.Model_Components.value in [0, 1] else None,
         round(Generator_Size.astype(float), 2) if instance.Model_Components.value in [0, 2] else None,
-        round(Ice_Tank_Size.astype(float), 2) if instance.MultiGood_Ice.value == 1 else None,
+        round(Ice_Tank_Size.astype(float), 2) if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1 else None,
         round(Compressor_Size.astype(float), 2) if instance.MultiGood_Ice.value == 1 else None
         ], axis=0).dropna().fillna('-')
         
@@ -1374,7 +1374,7 @@ def YearlyCosts(instance):
          Compressor_Yearly_Cost = pd.DataFrame()
          for (y,st) in ys_tuples_list:
             ice_tank_yc = pd.DataFrame(['Year '+str(y), (Compressor_Nominal_Capacity_milp*Compressor_Units[st])*Compressor_Inv_Specific_Cost*Compressor_OM_Specific_Cost/1e3]).T.set_index([0]) 
-            ice_tank_yc.columns = pd.MultiIndex.from_arrays([['Fixed costs'],['Ice Tank'],['-'],['kUSD']], names=['','Component','Scenario','Unit'])
+            ice_tank_yc.columns = pd.MultiIndex.from_arrays([['Fixed costs'],['Compressor'],['-'],['kUSD']], names=['','Component','Scenario','Unit'])
             Compressor_Yearly_Cost = pd.concat([Compressor_Yearly_Cost,ice_tank_yc], axis=0)
     else:  
      "Renewable Sources"
@@ -1425,11 +1425,11 @@ def YearlyCosts(instance):
          Compressor_Yearly_Cost = pd.DataFrame()
          for (y,st) in ys_tuples_list:
             ice_tank_yc = pd.DataFrame(['Year '+str(y), Compressor_Nominal_Capacity[st]*Compressor_Inv_Specific_Cost*Compressor_OM_Specific_Cost/1e3]).T.set_index([0]) 
-            ice_tank_yc.columns = pd.MultiIndex.from_arrays([['Fixed costs'],['Ice Tank'],['-'],['kUSD']], names=['','Component','Scenario','Unit'])
+            ice_tank_yc.columns = pd.MultiIndex.from_arrays([['Fixed costs'],['Compressor'],['-'],['kUSD']], names=['','Component','Scenario','Unit'])
             Compressor_Yearly_Cost = pd.concat([Compressor_Yearly_Cost,ice_tank_yc], axis=0)
             
     "Ice Tank"
-    if instance.MultiGood_Ice.value == 1:
+    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
          Ice_Tank_Nominal_Capacity = instance.Ice_Tank_Nominal_Capacity.extract_values()    
          Ice_Tank_Inv_Specific_Cost = instance.Ice_Tank_Specific_Investment_Cost.value
          Ice_Tank_OM_Specific_Cost = instance.Ice_Tank_Specific_OM_Cost.value
@@ -1571,7 +1571,7 @@ def YearlyCosts(instance):
     YearlyCost = pd.concat([
         round(RES_Yearly_Cost.astype(float), 2),
         round(BESS_Yearly_Cost.astype(float), 2) if instance.Model_Components.value in [0, 1] else None,
-        round(Ice_Tank_Yearly_Cost.astype(float),2) if instance.MultiGood_Ice.value == 1 else None,
+        round(Ice_Tank_Yearly_Cost.astype(float),2) if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1 else None,
         round(Generator_Yearly_Cost.astype(float), 2) if instance.Model_Components.value in [0, 2] else None,
         round(Grid_Yearly_Fixed_Cost.astype(float), 2) if instance.Grid_Connection.value == 1 else None,
         round(Lost_Load_Yearly_Cost.astype(float), 2),
@@ -1627,7 +1627,8 @@ def YearlyEnergyParams(instance, TimeSeries):
                 battery_out += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Battery Discharge',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
             if instance.MultiGood_Ice.value == 1:
                 ice += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Ice Demand',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
-                ice_tank_out += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Ice Tank Discharge',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
+                if instance.Ice_Storage.value == 1:
+                    ice_tank_out += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Ice Tank Discharge',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
             if instance.Grid_Connection.value == 1:
                 grid_in += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Electricity from grid',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]   
                 grid_out += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Electricity to grid',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
@@ -1641,7 +1642,7 @@ def YearlyEnergyParams(instance, TimeSeries):
         res_pen   = pd.concat([res_pen, pd.DataFrame(['Year '+str(y), renewables/(renewables+generators+grid_in)]).T.set_index([0])], axis=0)
         if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
             battery_usage = pd.concat([battery_usage, pd.DataFrame(['Year '+str(y), battery_out/demand]).T.set_index([0])], axis=0) 
-        if instance.MultiGood_Ice.value == 1:
+        if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
             ice_tank_usage = pd.concat([ice_tank_usage, pd.DataFrame(['Year '+str(y), ice_tank_out/ice]).T.set_index([0])], axis=0)
 
     gen_load  = round(gen_load.astype(float)*100,2)
@@ -1649,7 +1650,8 @@ def YearlyEnergyParams(instance, TimeSeries):
     res_pen   = round(res_pen.astype(float)*100,2)
     curt_load = round(curt_load.astype(float)*100,2)
     battery_usage = round(battery_usage.astype(float)*100,2)
-    ice_tank_usage = round(ice_tank_usage.astype(float)*100,2)
+    if instance.Ice_Storage.value == 1:
+        ice_tank_usage = round(ice_tank_usage.astype(float)*100,2)
     grid_usage = round(grid_usage.astype(float)*100,2)   
 
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
@@ -1658,7 +1660,7 @@ def YearlyEnergyParams(instance, TimeSeries):
     res_pen.columns   = pd.MultiIndex.from_arrays([['Renewables penetration'],['%']], names=['',' '])
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
         battery_usage.columns = pd.MultiIndex.from_arrays([['Battery usage'],['%']], names=['',' '])
-    if instance.MultiGood_Ice.value == 1:
+    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
         ice_tank_usage.columns = pd.MultiIndex.from_arrays([['Ice Tank usage'],['%']], names=['',' '])
     if instance.Grid_Connection.value == 1:
         grid_usage.columns = pd.MultiIndex.from_arrays([['Grid usage'],['%']], names=['',' ']) 
@@ -1669,7 +1671,7 @@ def YearlyEnergyParams(instance, TimeSeries):
         res_pen,
         curt_load,
         battery_usage if instance.Model_Components.value in [0,1] else None,
-        ice_tank_usage if instance.MultiGood_Ice.value == 1 else None,
+        ice_tank_usage if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1 else None,
         grid_usage if instance.Grid_Connection.value == 1 else None
         ], axis=1).dropna(axis=1)
             
@@ -1878,7 +1880,7 @@ def YearlyEnergyParamsSC(instance, TimeSeries):
                 battery_sc = pd.concat([battery_sc, batt_sc], axis=0)
             battery_usage_sc = pd.concat([battery_usage_sc, battery_sc], axis=1).fillna(0)
 
-    if instance.MultiGood_Ice.value == 1:
+    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
         Ice_Tank_Outflow = instance.Ice_Tank_Outflow.get_values()    
         ice_tank_usage_sc = pd.DataFrame()
         for s in range(1,S+1):
@@ -1906,7 +1908,7 @@ def YearlyEnergyParamsSC(instance, TimeSeries):
         round(res_pen_sc.astype(float) * 100, 2),
         round(curt_load_sc.astype(float) * 100, 2),
         round(battery_usage_sc.astype(float) * 100, 2) if instance.Model_Components.value in [0,1] else None,
-        round(ice_tank_usage_sc.astype(float)*100,2) if instance.MultiGood_Ice.value == 1 else None,
+        round(ice_tank_usage_sc.astype(float)*100,2) if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1 else None,
         round(grid_usage_sc.astype(float) * 100, 2) if instance.Grid_Connection.value == 1 else None
         ], axis=1).dropna(axis=1)
 
@@ -1947,54 +1949,24 @@ def PrintResults(instance, Results, callback=None):
     renewable_penetration = Results['Renewables Penetration'].sum().sum() / Y
     print(f'Average renewable penetration per year = {round(renewable_penetration, 2)} %')
     
-    if instance.Model_Components.value == 1 and instance.Grid_Connection == 1:
-        battery_usage = Results['Yearly energy parameters'].iloc[:, -2].sum().sum() / Y
+    if 'Battery usage' in Results['Yearly energy parameters'].columns:
+        battery_usage = (Results['Yearly energy parameters']['Battery usage'].sum() / Y).item()
         print(f'Average battery usage per year = {round(battery_usage, 2)} %')
-        grid_usage = Results['Yearly energy parameters'].iloc[:, -1].sum().sum() / Y
+        
+    if 'Generator usage' in Results['Yearly energy parameters'].columns:
+        generator_share = (Results['Yearly energy parameters']['Generator usage'].sum() / Y).item()
+        print(f'Average generator share per year = {round(generator_share, 2)} %')
+
+    if 'Grid usage' in Results['Yearly energy parameters'].columns:
+        grid_usage = (Results['Yearly energy parameters']['Grid usage'].sum() / Y).item()
         print(f'Average national grid usage per year = {round(grid_usage, 2)} %')
-        curtailment = Results['Yearly energy parameters'].iloc[:, -3].sum().sum() / Y
-        print(f'Average curtailment per year = {round(curtailment, 2)} %')
 
-    if instance.Model_Components.value == 1 and instance.Grid_Connection == 0:
-        battery_usage = Results['Yearly energy parameters'].iloc[:, -1].sum().sum() / Y
-        print(f'Average battery usage per year = {round(battery_usage, 2)} %')
-        curtailment = Results['Yearly energy parameters'].iloc[:, -2].sum().sum() / Y
+    if 'Curtailment share' in Results['Yearly energy parameters'].columns:
+        curtailment = (Results['Yearly energy parameters']['Curtailment share'].sum() / Y).item()
         print(f'Average curtailment per year = {round(curtailment, 2)} %')
-    
-    if instance.Model_Components.value == 2 and instance.Grid_Connection == 1:
-        generator_share = Results['Yearly energy parameters'].iloc[:, 0].sum().sum() / Y
-        print(f'Average generator share per year = {round(generator_share, 2)} %')
-        grid_usage = Results['Yearly energy parameters'].iloc[:, -1].sum().sum() / Y
-        print(f'Average national grid usage per year = {round(grid_usage, 2)} %')      
-        curtailment = Results['Yearly energy parameters'].iloc[:, -2].sum().sum() / Y
-        print(f'Average curtailment per year = {round(curtailment, 2)} %')
-
-    if instance.Model_Components.value == 2 and instance.Grid_Connection == 0:
-        generator_share = Results['Yearly energy parameters'].iloc[:, 0].sum().sum() / Y
-        print(f'Average generator share per year = {round(generator_share, 2)} %')
-        curtailment = Results['Yearly energy parameters'].iloc[:, -1].sum().sum() / Y
-        print(f'Average curtailment per year = {round(curtailment, 2)} %')
-
-    if instance.Model_Components.value == 0 and instance.Grid_Connection == 1:
-        generator_share = Results['Yearly energy parameters'].iloc[:, 0].sum().sum() / Y
-        print(f'Average generator share per year = {round(generator_share, 2)} %')
-        battery_usage = Results['Yearly energy parameters'].iloc[:, -2].sum().sum() / Y
-        print(f'Average battery usage per year = {round(battery_usage, 2)} %')
-        grid_usage = Results['Yearly energy parameters'].iloc[:, -1].sum().sum() / Y
-        print(f'Average national grid usage per year = {round(grid_usage, 2)} %')
-        curtailment = Results['Yearly energy parameters'].iloc[:, -3].sum().sum() / Y
-        print(f'Average curtailment per year = {round(curtailment, 2)} %')
-
-    if instance.Model_Components.value == 0 and instance.Grid_Connection == 0:
-        generator_share = Results['Yearly energy parameters'].iloc[:, 0].sum().sum() / Y
-        print(f'Average generator share per year = {round(generator_share, 2)} %')
-        battery_usage = Results['Yearly energy parameters'].iloc[:, -1].sum().sum() / Y
-        print(f'Average battery usage per year = {round(battery_usage, 2)} %')
-        curtailment = Results['Yearly energy parameters'].iloc[:, -2].sum().sum() / Y
-        print(f'Average curtailment per year = {round(curtailment, 2)} %')
-            
-    if instance.MultiGood_Ice.value == 1:
-        print('\nIce Production:')
-        ice_tank_usage = Results['Yearly energy parameters'].iloc[:, -1].sum().sum() / Y
-        print(f'Average ice tank usage per year = {round(ice_tank_usage, 2)} %')
+        
+    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
+        if 'Ice Tank usage' in Results['Yearly energy parameters'].columns:
+            ice_tank_usage = (Results['Yearly energy parameters']['Ice Tank usage'].sum() / Y).item()
+            print(f'Average ice tank usage (Ice Discharge/Ice Demand) per year = {round(ice_tank_usage, 2)} %')
 

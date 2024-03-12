@@ -171,8 +171,8 @@ def wind_parameters(Data_import):
     data1 = pd.read_csv(data_file_path, skiprows = skiprow,  skipfooter = skipf, delimiter=';', decimal=',') 
     df = pd.DataFrame(data1, columns= [turb_model])
     power_curve = (df[turb_model][4:34]).values.tolist()
-    rot_diam = float(df[turb_model][1])
-    rot_height = float(df[turb_model][2])
+    rot_diam = float(df[turb_model][1].replace(',', '.'))
+    rot_height = float(df[turb_model][2].replace(',', '.'))
     if type_turb == 'Horizontal Axis':
         surface_area = math.pi * rot_diam**2 /4
     else:
@@ -764,7 +764,7 @@ def wind_lst(U_rotor, wind_direction, ro_air):
 def P_turb(power_curve, WS_rotor_lst, ro_air_lst, surface_area, drivetrain_efficiency):
     # Ensure power_curve is a numeric array
     # If power_curve is a list of strings, convert it to a list of floats.
-    fp = np.array([float(pc) for pc in power_curve])
+    fp = np.array([float(pc.replace(',', '.')) for pc in power_curve])
 
     # Convert range to numpy array for xp
     xp = np.array(range(0, 30))

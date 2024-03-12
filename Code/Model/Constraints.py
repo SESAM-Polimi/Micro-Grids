@@ -68,7 +68,7 @@ class Constraints_Greenfield():
             else:
                 if model.Grid_Connection == 1:
                     if model.Model_Components == 0:
-                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emissionn + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
                     if model.Model_Components == 1:
                         return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Scenario_GRID_emission[s])
                     if model.Model_Components == 2:
@@ -555,7 +555,7 @@ class Constraints_Greenfield():
         return model.Battery_Inflow[s,yt,t] <= model.Battery_Maximum_Charge_Power[ut]*model.Delta_Time
     
     def Max_Bat_out(model,s,yt,ut,t): # Minimum flow of energy for the discharge fase
-        return model.Battery_Outflow[s,yt,t] <= model.Energy_Demand[s,yt,t]
+        return model.Battery_Outflow[s,yt,t] <= (model.Energy_Demand[s,yt,t] + model.Compressor_Energy_Consumption[s,yt,t])*model.Delta_Time
         
     def Battery_Min_Capacity(model,ut):    
         return   model.Battery_Nominal_Capacity[ut] >= model.Battery_Min_Capacity[ut]
@@ -578,7 +578,7 @@ class Constraints_Greenfield():
         return model.Generator_Energy_Production[s,yt,g,t] <= model.Generator_Nominal_Capacity[ut,g]*model.Delta_Time
     
     def Maximum_Generator_Energy_2(model,s,yt,ut,g,t): 
-        return model.Generator_Energy_Production[s,yt,g,t] <= model.Energy_Demand[s,yt,t]*model.Delta_Time
+        return model.Generator_Energy_Production[s,yt,g,t] <= (model.Energy_Demand[s,yt,t] + model.Compressor_Energy_Consumption[s,yt,t])*model.Delta_Time
     
     def Generator_Min_Step_Capacity(model,yt,ut,g):
         if ut > 1:

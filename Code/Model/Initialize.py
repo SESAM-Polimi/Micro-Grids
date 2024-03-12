@@ -414,7 +414,7 @@ if MultiGood_Ice:
         # Rename the columns to reflect the year
         Tamb.columns = range(1, n_years + 1)
         # Export the modified or generated Tamb DataFrame to the same CSV file
-        Tamb.to_csv(tamb_file_path, sep=';', decimal=',', index=False)
+        Tamb.to_csv(tamb_file_path, sep=';', decimal=',', index=True)
         print('Tamb data exported into csv file')
         
     plot_path = os.path.join(plots_directory, 'Tamb_heatmap.png')
