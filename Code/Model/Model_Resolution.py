@@ -38,6 +38,8 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
             MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
         if "param: MultiGood_Ice" in Data_import[i]:      
             MultiGood_Ice = int((re.findall('\d+',Data_import[i])[0]))
+        if "param: Ice_Storage" in Data_import[i]:      
+            Ice_Storage = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Plot_Max_Cost" in Data_import[i]:      
             Plot_Max_Cost = int((re.findall('\d+',Data_import[i])[0]))
         if "param: Generator_Partial_Load" in Data_import[i]:      
@@ -311,41 +313,42 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                          model.periods, 
                                          rule=C.Maximum_Consumption)
         # Ice tank
-        model.TankStateOfCharge         = Constraint(model.scenarios, 
-                                                     model.years_steps,
-                                                     model.periods,  
-                                                     rule=C.Ice_Tank_State_of_Charge)    
-        model.MaximumIceTankCharge      = Constraint(model.scenarios,
-                                                     model.years_steps, 
-                                                     model.periods,
-                                                     rule=C.Maximum_Ice_Tank_Charge)    
-        model.MinimumIceTankCharge      = Constraint(model.scenarios,
-                                                     model.years_steps, 
-                                                     model.periods,
-                                                     rule=C.Minimum_Ice_Tank_Charge)    
-        model.MaxPowerIceTankCharge     = Constraint(model.steps, 
-                                                     rule=C.Max_Power_Ice_Tank_Charge) 
-        model.MaxPowerIceTankDischarge  = Constraint(model.steps,
-                                                     rule=C.Max_Power_Ice_Tank_Discharge)   
-        model.MaxIceTankIn              = Constraint(model.scenarios,
-                                                     model.years_steps, 
-                                                     model.periods, 
-                                                     rule=C.Max_Ice_Tank_in)
-        model.MaxIceTankOut             = Constraint(model.scenarios,
-                                                     model.years_steps, 
-                                                     model.periods,
-                                                     rule=C.Max_Ice_Tank_out)
-        model.IceTankMinStepCapacity    = Constraint(model.years_steps, 
-                                                     rule=C.Ice_Tank_Min_Step_Capacity)
-        if MILP_Formulation == 1:
-            model.IceTankSingleFlowDischarge   = Constraint(model.scenarios,
-                                                            model.years_steps,
-                                                            model.periods, 
-                                                            rule=C.Ice_Tank_Single_Flow_Discharge)
-            model.IceTankSingleFlowCharge      = Constraint(model.scenarios,
-                                                            model.years_steps,
-                                                            model.periods, 
-                                                            rule=C.Ice_Tank_Single_Flow_Charge)
+        if Ice_Storage == 1:
+            model.TankStateOfCharge         = Constraint(model.scenarios, 
+                                                         model.years_steps,
+                                                         model.periods,  
+                                                         rule=C.Ice_Tank_State_of_Charge)    
+            model.MaximumIceTankCharge      = Constraint(model.scenarios,
+                                                         model.years_steps, 
+                                                         model.periods,
+                                                         rule=C.Maximum_Ice_Tank_Charge)    
+            model.MinimumIceTankCharge      = Constraint(model.scenarios,
+                                                         model.years_steps, 
+                                                         model.periods,
+                                                         rule=C.Minimum_Ice_Tank_Charge)    
+            model.MaxPowerIceTankCharge     = Constraint(model.steps, 
+                                                         rule=C.Max_Power_Ice_Tank_Charge) 
+            model.MaxPowerIceTankDischarge  = Constraint(model.steps,
+                                                         rule=C.Max_Power_Ice_Tank_Discharge)   
+            model.MaxIceTankIn              = Constraint(model.scenarios,
+                                                         model.years_steps, 
+                                                         model.periods, 
+                                                         rule=C.Max_Ice_Tank_in)
+            model.MaxIceTankOut             = Constraint(model.scenarios,
+                                                         model.years_steps, 
+                                                         model.periods,
+                                                         rule=C.Max_Ice_Tank_out)
+            model.IceTankMinStepCapacity    = Constraint(model.years_steps, 
+                                                         rule=C.Ice_Tank_Min_Step_Capacity)
+            if MILP_Formulation == 1:
+                model.IceTankSingleFlowDischarge   = Constraint(model.scenarios,
+                                                                model.years_steps,
+                                                                model.periods, 
+                                                                rule=C.Ice_Tank_Single_Flow_Discharge)
+                model.IceTankSingleFlowCharge      = Constraint(model.scenarios,
+                                                                model.years_steps,
+                                                                model.periods, 
+                                                                rule=C.Ice_Tank_Single_Flow_Charge)
 
     "Emission constrains"
     model.RESemission    = Constraint(rule=C.RES_emission)
@@ -368,7 +371,7 @@ def Model_Resolution(model, datapath=data_file_path, options_string="mipgap=0.05
                                     rule=C.GRID_emission)
         model.ScenarioGRIDemission = Constraint(model.scenarios,
                                             rule=C.Scenario_GRID_emission) 
-    if MultiGood_Ice == 1:
+    if MultiGood_Ice == 1 and Ice_Storage == 1:
         model.IceTankemission   = Constraint(rule=C.Ice_Tank_emission)
 
 ##############################################################################################################################################################

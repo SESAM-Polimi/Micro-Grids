@@ -20,6 +20,7 @@ Based on the original model by:
 
 import pandas as pd, numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import re
 import os
 from RE_calculation import RE_supply
@@ -155,6 +156,7 @@ def plot_average_daily_demand(demand_data, output_path):
     plt.legend()
     plt.grid(True)
     plt.savefig(output_path)
+    plt.show()
     plt.close() 
 
 if Demand_Profile_Generation:
@@ -219,26 +221,38 @@ def Initialize_Demand(model, s, y, t):
     """
     return float(Electric_Energy_Demand[0][(s, y, t)])
 
-def plot_average_daily_ice_demand(demand_data, output_path):
-    n_years = demand_data.shape[1]
-    hours_per_day = 24
+def plot_average_monthly_ice_demand(demand_data, output_path):
+    # Number of years in the dataset
+    n_years = demand_data.shape[1] - 1  # Assuming the first column is the index
 
+    # Define the number of days in each month (non-leap year)
+    days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    hours_in_month = [days * 24 for days in days_in_month]
+    
+    # Initialize an array to store the sum of monthly demand for all years
+    monthly_demand_sum = np.zeros(12)
+    
+    # Sum the demand for each month for all years
+    start_idx = 0
+    for month, hours in enumerate(hours_in_month):
+        end_idx = start_idx + hours
+        # Summing up all the values for each month across all years and storing it
+        monthly_demand_sum[month] = demand_data.iloc[start_idx:end_idx, 1:].to_numpy().sum()
+        start_idx = end_idx
+
+    # Calculate the average monthly demand
+    average_monthly_demand = monthly_demand_sum / n_years
+
+    # Plotting
     plt.figure(figsize=(12, 6))
-
-    # Calculate and plot average daily demand for each year
-    for year in range(n_years):
-        # Reshape yearly data into days and hours (assuming 365 days per year)
-        yearly_data = demand_data.iloc[:, year].values.reshape(-1, hours_per_day)
-        # Calculate average demand for each hour
-        average_daily_demand = np.mean(yearly_data, axis=0)
-        plt.plot(average_daily_demand, label=f'Year {year + 1}')
-
-    plt.title('Average Daily Ice Demand for Each Year')
-    plt.xlabel('Hour of Day')
-    plt.ylabel('Ice Mass [kg]')
-    plt.legend()
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    plt.bar(months, average_monthly_demand)
+    plt.title('Average Monthly Ice Demand')
+    plt.xlabel('Month')
+    plt.ylabel('Cumulative Ice Demand [kg]')
     plt.grid(True)
     plt.savefig(output_path)
+    plt.show()
     plt.close() 
 
 if MultiGood_Ice == 1:
@@ -247,7 +261,7 @@ if MultiGood_Ice == 1:
     if n_scenarios == 1: Ice = Ice.iloc[:, :n_years]
     print("Ice demand data loaded exogenously from excel file")
     plot_path = os.path.join(plots_directory, 'Ice Demand.png')
-    plot_average_daily_ice_demand(Ice, plot_path)
+    plot_average_monthly_ice_demand(Ice, plot_path)
     print("Ice demand plot saved in Results/Plots")
 
     # Drop columns where all values are NaN, as they don't contain any useful data
@@ -333,6 +347,7 @@ def plot_renewable_energy_availability(renewable_energy_data, output_path):
     plt.legend(lines, labels, loc='upper right')
 
     plt.savefig(output_path)
+    plt.show()
     plt.close()
 
 if RE_Supply_Calculation == 0: 
@@ -363,6 +378,25 @@ def Initialize_RES_Energy(model, s, r, t):
     column = (s - 1) * model.RES_Sources + r
     return float(Renewable_Energy.iloc[t - 1, column]) 
 
+def plot_average_daily_temperature_heatmap(tamb, output_path):
+    # Convert hourly data to daily averages
+    daily_averages = tamb.mean(axis=1).groupby(np.arange(len(Tamb)) // 24).mean()
+
+    # Prepare the data for the heatmap
+    data_for_heatmap = daily_averages.values.reshape(-1, 1)
+
+    # Plot the heatmap
+    plt.figure(figsize=(5, 10))
+    sns.heatmap(data_for_heatmap, cmap='coolwarm', cbar_kws={'label': 'Average Daily Temperature (°C)'}, 
+                yticklabels=15, xticklabels=[])
+    plt.title('Heatmap of Average Daily Temperature')
+    plt.ylabel('Day of the Year')
+
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.show()
+    plt.close()
+
 if MultiGood_Ice:
     if RE_Supply_Calculation == 0: 
         Tamb = pd.read_csv(tamb_file_path, delimiter=';', decimal=',', header=0)
@@ -383,6 +417,8 @@ if MultiGood_Ice:
         Tamb.to_csv(tamb_file_path, sep=';', decimal=',', index=False)
         print('Tamb data exported into csv file')
         
+    plot_path = os.path.join(plots_directory, 'Tamb_heatmap.png')
+    plot_average_daily_temperature_heatmap(Tamb, plot_path)
     # Drop columns where all values are NaN, as they don't contain any useful data
     Tamb = Tamb.dropna(how='all', axis=1)
     Tamb_Series = pd.Series(dtype=float)

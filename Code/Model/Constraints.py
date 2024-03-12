@@ -50,20 +50,36 @@ class Constraints_Greenfield():
     
     def Scenario_CO2_emission(model,s):
         if model.MultiGood_Ice == 1:
-            if model.Grid_Connection == 1:
-                if model.Model_Components == 0:
-                    return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
-                if model.Model_Components == 1:
-                    return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Ice_Tank_emission + model.Scenario_GRID_emission[s])
-                if model.Model_Components == 2:
-                    return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+            if model.Ice_Storage == 1:
+                if model.Grid_Connection == 1:
+                    if model.Model_Components == 0:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+                    if model.Model_Components == 1:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Ice_Tank_emission + model.Scenario_GRID_emission[s])
+                    if model.Model_Components == 2:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+                else:
+                    if model.Model_Components == 0:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s])
+                    if model.Model_Components == 1:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Ice_Tank_emission)
+                    if model.Model_Components == 2:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s])
             else:
-                if model.Model_Components == 0:
-                    return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s])
-                if model.Model_Components == 1:
-                    return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Ice_Tank_emission)
-                if model.Model_Components == 2:
-                    return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s])
+                if model.Grid_Connection == 1:
+                    if model.Model_Components == 0:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emissionn + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+                    if model.Model_Components == 1:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Scenario_GRID_emission[s])
+                    if model.Model_Components == 2:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Scenario_FUEL_emission[s] + model.Scenario_GRID_emission[s])
+                else:
+                    if model.Model_Components == 0:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.BESS_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s])
+                    if model.Model_Components == 1:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.BESS_emission + model.Ice_Tank_emission)
+                    if model.Model_Components == 2:
+                        return model.Scenario_CO2_emission[s] ==  (model.RES_emission + model.GEN_emission + model.Ice_Tank_emission + model.Scenario_FUEL_emission[s])
         else:
             if model.Grid_Connection == 1:
                 if model.Model_Components == 0:
@@ -105,13 +121,16 @@ class Constraints_Greenfield():
                         for (yt,ut) in tup_list) for g in model.generator_types)  
         Inv_Bat = ((model.Battery_Nominal_Capacity[1]*model.Battery_Specific_Investment_Cost)
                         + sum((((model.Battery_Nominal_Capacity[ut] - model.Battery_Nominal_Capacity[ut-1])*model.Battery_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
-                        for (yt,ut) in tup_list)) 
-        Inv_Ice_Tank = ((model.Ice_Tank_Nominal_Capacity[1]*model.Ice_Tank_Specific_Investment_Cost)
-                        + sum((((model.Ice_Tank_Nominal_Capacity[ut] - model.Ice_Tank_Nominal_Capacity[ut-1])*model.Ice_Tank_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
-                        for (yt,ut) in tup_list)) 
+                        for (yt,ut) in tup_list))
         Inv_Compressor = ((model.Compressor_Nominal_Capacity[1]*model.Compressor_Specific_Investment_Cost)
                           + sum((((model.Compressor_Nominal_Power[ut] - model.Compressor_Nominal_Power[ut-1])*model.Compressor_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
                                 for (yt,ut) in tup_list))
+        if model.Ice_Storage == 1:
+            Inv_Ice_Tank = ((model.Ice_Tank_Nominal_Capacity[1]*model.Ice_Tank_Specific_Investment_Cost)
+                                + sum((((model.Ice_Tank_Nominal_Capacity[ut] - model.Ice_Tank_Nominal_Capacity[ut-1])*model.Ice_Tank_Specific_Investment_Cost))/((1+model.Discount_Rate)**(yt-1))
+                                  for (yt,ut) in tup_list)) 
+        else: Inv_Ice_Tank = 0
+
         
         if model.MultiGood_Ice == 1:
             if model.Model_Components == 0:
@@ -139,10 +158,13 @@ class Constraints_Greenfield():
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)/((
                         1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
-        OyM_Ice_Tank = sum((model.Ice_Tank_Nominal_Capacity[ut]*model.Ice_Tank_Specific_Investment_Cost*model.Ice_Tank_Specific_OM_Cost)/((
-                        1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
         OyM_Compressor = sum((model.Compressor_Nominal_Capacity[ut]*model.Compressor_Specific_Investment_Cost*model.Compressor_Specific_OM_Cost)/((
                             1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
+        if model.Ice_Storage == 1:
+            OyM_Ice_Tank = sum((model.Ice_Tank_Nominal_Capacity[ut]*model.Ice_Tank_Specific_Investment_Cost*model.Ice_Tank_Specific_OM_Cost)/((
+                                1+model.Discount_Rate)**yt)for (yt,ut) in model.years_steps)
+        else: OyM_Ice_Tank = 0
+
         
         if model.MultiGood_Ice == 1:
             if model.Model_Components == 0:
@@ -166,10 +188,13 @@ class Constraints_Greenfield():
                         for (yt,ut) in model.years_steps)for g in model.generator_types)
         OyM_Bat = sum((model.Battery_Nominal_Capacity[ut]*model.Battery_Specific_Investment_Cost*model.Battery_Specific_OM_Cost)
                         for (yt,ut) in model.years_steps)
-        OyM_Ice_Tank = sum((model.Ice_Tank_Nominal_Capacity[ut]*model.Ice_Tank_Specific_Investment_Cost*model.Ice_Tank_Specific_OM_Cost)
-                        for (yt,ut) in model.years_steps)
         OyM_Compressor = sum((model.Compressor_Nominal_Capacity[ut]*model.Compressor_Specific_Investment_Cost*model.Compressor_Specific_OM_Cost)
                              for (yt,ut) in model.years_steps)
+        if model.Ice_Storage == 1:
+            OyM_Ice_Tank = sum((model.Ice_Tank_Nominal_Capacity[ut]*model.Ice_Tank_Specific_Investment_Cost*model.Ice_Tank_Specific_OM_Cost)
+                               for (yt,ut) in model.years_steps)
+        else: OyM_Ice_Tank = 0
+
         
         if model.MultiGood_Ice == 1:
             if model.Model_Components == 0:
@@ -588,7 +613,9 @@ class Constraints_Greenfield():
 #%% Ice mass balance
 
     def Ice_balance(model,s,yt,ut,t):
-        return model.Ice_Demand[s,yt,t] == model.Ice_Prod[s,yt,t] - model.Ice_Tank_Inflow[s,yt,t] + model.Ice_Tank_Outflow[s,yt,t]
+        if model.Ice_Storage == 1:
+            return model.Ice_Demand[s,yt,t] == model.Ice_Prod[s,yt,t] - model.Ice_Tank_Inflow[s,yt,t] + model.Ice_Tank_Outflow[s,yt,t]
+        else: return model.Ice_Demand[s,yt,t] == model.Ice_Prod[s,yt,t]
 
     def Ice_Prod(model,s,yt,ut,t):
         return model.Ice_Prod[s,yt,t] == (model.COP[s,yt,t] * (model.Compressor_Energy_Consumption[s,yt,t])*3600)/((model.eta_compressor*(((4186*(model.Tgw[s,yt,t]-0)+334000+(0-(-10))*2090)))))
