@@ -19,13 +19,12 @@ Based on the original model by:
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import pyplot
-import matplotlib.dates as mdates
+
 import re
 import os
 
 def PlotCumulativeMonthlyEnergyDemand(instance, Time_Series, PlotScenario, PlotDate, PlotResolution, PlotFormat):
-    print('Plotting cumulative monthly energy demand...')
+    print('       plotting cumulative monthly energy demand...')
 
     # Fonts and figure size setup
     fontticks = 18
@@ -66,7 +65,7 @@ def PlotCumulativeMonthlyEnergyDemand(instance, Time_Series, PlotScenario, PlotD
     
     ax.set_xlabel('Month',fontname='Times New Roman', fontsize=fontaxis)
     ax.set_ylabel('Energy [kWh]', fontname='Times New Roman', fontsize=fontaxis)
-    ax.set_title(f'Cumulative Monthly Energy Deman (Year {PlotYear})', fontsize=fontaxis + 2, fontname='Times New Roman', pad=20)
+    ax.set_title(f'Cumulative Monthly Energy Demand (Year {PlotYear})', fontsize=fontaxis + 2, fontname='Times New Roman', pad=20)
     ax.tick_params(axis='x', which='major', labelsize=fontticks)
     ax.tick_params(axis='y', which='major', labelsize=fontticks)
     ax.legend()
@@ -336,7 +335,7 @@ def DispatchPlot_Ice(instance,Time_Series,PlotScenario,PlotDate,PlotTime,PlotRes
         if "param: MILP_Formulation" in Data_import[i]:      
             MILP_Formulation = int((re.findall('\d+',Data_import[i])[0]))
 
-    print('\nPlots: plotting ice dispatch...')
+    print('       plotting ice dispatch...')
     fontticks = 18
     fonttitles = 16
     fontaxis = 14

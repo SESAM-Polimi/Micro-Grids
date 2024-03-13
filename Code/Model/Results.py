@@ -12,7 +12,7 @@ def ResultsSummary(instance, Optimization_Goal, TimeSeries):
 
     from Results import EnergySystemCost, EnergySystemSize, YearlyCosts, YearlyEnergyParams, YearlyEnergyParamsSC  
     
-    print('Results: exporting economic results...')
+    print('         exporting economic results...')
     EnergySystemCost                              = EnergySystemCost(instance, Optimization_Goal)
     YearlyCost                                    = YearlyCosts(instance) 
     print('         exporting technical results...')
@@ -1601,6 +1601,7 @@ def YearlyEnergyParams(instance, TimeSeries):
     
     #%% Data preparation
     gen_load  = pd.DataFrame()
+    comp_load  = pd.DataFrame()
     res_load  = pd.DataFrame()
     curt_load = pd.DataFrame()
     res_pen   = pd.DataFrame()
@@ -1615,6 +1616,7 @@ def YearlyEnergyParams(instance, TimeSeries):
         generators  = 0
         battery_out = 0
         ice_tank_out = 0
+        compressor = 0
         grid_in = 0   
         grid_out = 0
         for s in range(1,S+1):
@@ -1627,6 +1629,7 @@ def YearlyEnergyParams(instance, TimeSeries):
                 battery_out += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Battery Discharge',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
             if instance.MultiGood_Ice.value == 1:
                 ice += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Ice Demand',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
+                compressor  += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Compressor Consumption',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
                 if instance.Ice_Storage.value == 1:
                     ice_tank_out += TimeSeries[s][y].loc[:,idx['Scenario '+str(s),'Ice Tank Discharge',:,:]].sum().sum()*instance.Scenario_Weight.extract_values()[s]
             if instance.Grid_Connection.value == 1:
@@ -1642,16 +1645,20 @@ def YearlyEnergyParams(instance, TimeSeries):
         res_pen   = pd.concat([res_pen, pd.DataFrame(['Year '+str(y), renewables/(renewables+generators+grid_in)]).T.set_index([0])], axis=0)
         if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
             battery_usage = pd.concat([battery_usage, pd.DataFrame(['Year '+str(y), battery_out/demand]).T.set_index([0])], axis=0) 
-        if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
-            ice_tank_usage = pd.concat([ice_tank_usage, pd.DataFrame(['Year '+str(y), ice_tank_out/ice]).T.set_index([0])], axis=0)
+        if instance.MultiGood_Ice.value == 1:
+            comp_load  = pd.concat([comp_load, pd.DataFrame(['Year '+str(y), compressor/demand]).T.set_index([0])], axis=0)
+            if instance.Ice_Storage.value == 1:
+                ice_tank_usage = pd.concat([ice_tank_usage, pd.DataFrame(['Year '+str(y), ice_tank_out/ice]).T.set_index([0])], axis=0)
 
     gen_load  = round(gen_load.astype(float)*100,2)
     res_load  = round(res_load.astype(float)*100,2)
     res_pen   = round(res_pen.astype(float)*100,2)
     curt_load = round(curt_load.astype(float)*100,2)
     battery_usage = round(battery_usage.astype(float)*100,2)
-    if instance.Ice_Storage.value == 1:
-        ice_tank_usage = round(ice_tank_usage.astype(float)*100,2)
+    if instance.MultiGood_Ice.value == 1:
+        comp_load  = round(comp_load.astype(float)*100,2)
+        if instance.Ice_Storage.value == 1:
+            ice_tank_usage = round(ice_tank_usage.astype(float)*100,2)
     grid_usage = round(grid_usage.astype(float)*100,2)   
 
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 2:
@@ -1660,8 +1667,10 @@ def YearlyEnergyParams(instance, TimeSeries):
     res_pen.columns   = pd.MultiIndex.from_arrays([['Renewables penetration'],['%']], names=['',' '])
     if instance.Model_Components.value == 0 or instance.Model_Components.value == 1:
         battery_usage.columns = pd.MultiIndex.from_arrays([['Battery usage'],['%']], names=['',' '])
-    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
-        ice_tank_usage.columns = pd.MultiIndex.from_arrays([['Ice Tank usage'],['%']], names=['',' '])
+    if instance.MultiGood_Ice.value == 1:
+        comp_load.columns  = pd.MultiIndex.from_arrays([['Compressor usage'],['%']], names=['',' '])
+        if instance.Ice_Storage.value == 1:
+            ice_tank_usage.columns = pd.MultiIndex.from_arrays([['Ice Tank usage'],['%']], names=['',' '])
     if instance.Grid_Connection.value == 1:
         grid_usage.columns = pd.MultiIndex.from_arrays([['Grid usage'],['%']], names=['',' ']) 
     
@@ -1671,6 +1680,7 @@ def YearlyEnergyParams(instance, TimeSeries):
         res_pen,
         curt_load,
         battery_usage if instance.Model_Components.value in [0,1] else None,
+        comp_load if instance.MultiGood_Ice.value == 1 else None,
         ice_tank_usage if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1 else None,
         grid_usage if instance.Grid_Connection.value == 1 else None
         ], axis=1).dropna(axis=1)
@@ -1953,9 +1963,9 @@ def PrintResults(instance, Results, callback=None):
         battery_usage = (Results['Yearly energy parameters']['Battery usage'].sum() / Y).item()
         print(f'Average battery usage per year = {round(battery_usage, 2)} %')
         
-    if 'Generator usage' in Results['Yearly energy parameters'].columns:
-        generator_share = (Results['Yearly energy parameters']['Generator usage'].sum() / Y).item()
-        print(f'Average generator share per year = {round(generator_share, 2)} %')
+    if 'Generators share' in Results['Yearly energy parameters'].columns:
+        generator_share = (Results['Yearly energy parameters']['Generators share'].sum() / Y).item()
+        print(f'Average generator usage per year = {round(generator_share, 2)} %')
 
     if 'Grid usage' in Results['Yearly energy parameters'].columns:
         grid_usage = (Results['Yearly energy parameters']['Grid usage'].sum() / Y).item()
@@ -1965,7 +1975,11 @@ def PrintResults(instance, Results, callback=None):
         curtailment = (Results['Yearly energy parameters']['Curtailment share'].sum() / Y).item()
         print(f'Average curtailment per year = {round(curtailment, 2)} %')
         
-    if instance.MultiGood_Ice.value == 1 and instance.Ice_Storage.value == 1:
+    if instance.MultiGood_Ice.value == 1:
+        print('\nIce Production:')
+        if 'Compressor usage' in Results['Yearly energy parameters'].columns:
+            compressor_usage = (Results['Yearly energy parameters']['Compressor usage'].sum() / Y).item()
+            print(f'Average compressor usage per year = {round(compressor_usage, 2)} %')
         if 'Ice Tank usage' in Results['Yearly energy parameters'].columns:
             ice_tank_usage = (Results['Yearly energy parameters']['Ice Tank usage'].sum() / Y).item()
             print(f'Average ice tank usage (Ice Discharge/Ice Demand) per year = {round(ice_tank_usage, 2)} %')

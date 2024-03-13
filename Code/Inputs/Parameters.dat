@@ -159,7 +159,7 @@ param: Fuel_LHV :=
 1	10140.0
 ;
 param: Fuel_Specific_Start_Cost :=
-1	1.6
+1	1.45
 ;
 param: Fuel_Specific_Cost_Rate :=
 1	0.0
